@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="60%" stop-color="#0369a1" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="cyanBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    <linearGradient id="goldGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="100%" stop-color="#eab308" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded rectangle -->
+  <rect width="512" height="512" rx="110" fill="url(#bgGrad)" />
+
+  <!-- Outer Security Shield -->
+  <path d="M 256,60 L 390,110 C 390,270 340,370 256,430 C 172,370 122,270 122,110 Z"
+        fill="url(#shieldGrad)" stroke="url(#cyanBorder)" stroke-width="12" stroke-linejoin="round" />
+
+  <!-- Road Perspective (Tapering) -->
+  <polygon points="256,150 290,390 222,390" fill="#090d16" />
+  
+  <!-- Road Center Dashed Line -->
+  <line x1="256" y1="165" x2="256" y2="215" stroke="url(#goldGlow)" stroke-width="6" stroke-linecap="round" />
+  <line x1="256" y1="240" x2="256" y2="300" stroke="url(#goldGlow)" stroke-width="7" stroke-linecap="round" />
+  <line x1="256" y1="330" x2="256" y2="385" stroke="url(#goldGlow)" stroke-width="8" stroke-linecap="round" />
+
+  <!-- AI Pulse Beacon -->
+  <circle cx="256" cy="140" r="18" fill="#38bdf8" />
+  <circle cx="256" cy="140" r="30" fill="none" stroke="#38bdf8" stroke-width="3" opacity="0.6" />
+  <circle cx="256" cy="140" r="8" fill="#ffffff" />
+
+  <!-- Brand Typography Badge -->
+  <text x="256" y="475" font-family="system-ui, sans-serif" font-size="28" font-weight="900" fill="#f8fafc" text-anchor="middle" letter-spacing="3">ROADGUARD AI</text>
+</svg>

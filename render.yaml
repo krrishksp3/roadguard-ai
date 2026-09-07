@@ -1,0 +1,62 @@
+services:
+  # ==========================================
+  # ROADGUARD AI BACKEND API WEB SERVICE
+  # ==========================================
+  - type: web
+    name: roadguard-backend
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm run prisma:push && npm run seed && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: roadguard-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: AI_PROVIDER
+        value: demo
+      - key: FRONTEND_URL
+        fromService:
+          type: static
+          name: roadguard-frontend
+          property: url
+
+  # ==========================================
+  # ROADGUARD AI PROGRESSIVE WEB APP (PWA)
+  # ==========================================
+  - type: static
+    name: roadguard-frontend
+    plan: free
+    region: oregon
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: roadguard-backend
+          property: url
+
+# ==========================================
+# PRODUCTION POSTGRESQL DATABASE
+# ==========================================
+databases:
+  - name: roadguard-db
+    plan: free
+    region: oregon
+    databaseName: roadguard_ai
+    user: roadguard_user

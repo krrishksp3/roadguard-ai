@@ -1,0 +1,243 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  passwordHash String
+  name         String
+  role         String       @default("CITIZEN") // CITIZEN, AUTHORITY, ADMIN
+  phone        String?
+  departmentId String?
+  department   Department?  @relation(fields: [departmentId], references: [id])
+  reports      RoadReport[] @relation("CitizenReports")
+  assignedReports RoadReport[] @relation("AssignedOfficer")
+  notifications Notification[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Department {
+  id              String        @id @default(uuid())
+  code            String        @unique // e.g. "PWD_MRT", "NN_MRT", "NHAI_DIV"
+  name            String
+  jurisdiction    String        // e.g. "Meerut Provincial Division"
+  nodalOfficer    String
+  contactEmail    String
+  slaDaysDefault  Int           @default(5)
+  activeWorkload  Int           @default(0)
+  users           User[]
+  roadSegments    RoadSegment[]
+  reports         RoadReport[]
+  tenders         Tender[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model RoadSegment {
+  id                   String       @id @default(uuid())
+  code                 String       @unique // e.g. "MRT-RD-01"
+  name                 String       // e.g. "Meerut–Pauri Road (ODR)"
+  startLat             Float
+  startLng             Float
+  endLat               Float
+  endLng               Float
+  lengthKm             Float        @default(5.2)
+  departmentId         String
+  department           Department   @relation(fields: [departmentId], references: [id])
+  importanceLevel      String       @default("MAJOR_DISTRICT") // HIGHWAY, ARTERIAL, MAJOR_DISTRICT, LOCAL
+  healthScore          Int          @default(75) // 0-100
+  openComplaints       Int          @default(0)
+  criticalComplaints   Int          @default(0)
+  resolvedComplaints   Int          @default(0)
+  recurringDamageCount Int          @default(0)
+  isRecurringHotspot   Boolean      @default(false)
+  reportingCoverage    String       @default("MODERATE") // LIMITED, MODERATE, HIGH
+  lastInspectionDate   DateTime?
+  lastRepairDate       DateTime?
+  tender               Tender?
+  reports              RoadReport[]
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  @@index([departmentId])
+  @@index([healthScore])
+}
+
+model Tender {
+  id                 String       @id @default(uuid())
+  tenderId           String       @unique // Official Tender Reference e.g. "UP-PWD-MRT-2025-089"
+  tenderRefNumber    String
+  roadName           String
+  workDescription    String
+  departmentId       String
+  department         Department   @relation(fields: [departmentId], references: [id])
+  roadSegmentId      String?      @unique
+  roadSegment        RoadSegment? @relation(fields: [roadSegmentId], references: [id])
+  tenderValue        String       // e.g. "₹1.85 Crore"
+  tenderDate         String
+  workPeriod         String       // e.g. "12 Months"
+  tenderStatus       String       @default("Awarded") // Active, Under Maintenance, Awarded, Completed, Tendering
+  invitingAuthority  String       // e.g. "Executive Engineer, Provincial Division, UP PWD Meerut"
+  contractor         String       // e.g. "M/s Meerut Infra Builders Ltd." or "Not available in retrieved public record"
+  contractorStatus   String       @default("VERIFIED") // VERIFIED, UNVERIFIED, PUBLIC_RECORD_PENDING
+  officialSourceUrl  String
+  sourceDate         String
+  verificationStatus String       @default("VERIFIED") // VERIFIED, SOURCE FOUND, DEMO DATA, NOT VERIFIED
+  notes              String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([departmentId])
+}
+
+model RoadReport {
+  id                   String                 @id // e.g. "RG-MRT-2026-000101"
+  clientReportId       String?                @unique // UUID generated client-side for idempotency
+  userId               String
+  user                 User                   @relation("CitizenReports", fields: [userId], references: [id])
+  imageUrl             String
+  additionalImages     String?                // JSON array of strings
+  evidenceSource       String                 @default("USER_UPLOADED") // USER_UPLOADED, LICENSED_EXTERNAL, DEMO_SYNTHETIC
+  evidenceSourceMetadata String?              // JSON string
+  imageFilename        String?
+  imageMimeType        String?
+  latitude             Float
+  longitude            Float
+  address              String?
+  description          String
+  damageType           String                 // pothole, crack, surface_deterioration, waterlogging, etc.
+  severity             String                 // low, medium, high, critical
+  status               String                 @default("REPORTED") // ComplaintStatus
+  roadSegmentId        String?
+  roadSegment          RoadSegment?           @relation(fields: [roadSegmentId], references: [id])
+  departmentId         String?
+  department           Department?            @relation(fields: [departmentId], references: [id])
+  assignedOfficerId    String?
+  assignedOfficer      User?                  @relation("AssignedOfficer", fields: [assignedOfficerId], references: [id])
+  riskScore            Int                    @default(50) // 0-100
+  isDuplicate          Boolean                @default(false)
+  duplicateOfId        String?
+  isRecurring          Boolean                @default(false)
+  slaTargetHours       Int                    @default(48)
+  slaDueAt             DateTime
+  isOverdue            Boolean                @default(false)
+  overdueHours         Int                    @default(0)
+  repairBeforeImageUrl String?
+  repairAfterImageUrl  String?
+  aiAnalysis           AIAnalysis?
+  priorityAssessment   PriorityAssessment?
+  verificationResult   RepairVerification?
+  timeline             StatusTimelineEvent[]
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  @@index([userId])
+  @@index([roadSegmentId])
+  @@index([departmentId])
+  @@index([status])
+  @@index([severity])
+  @@index([riskScore])
+  @@index([latitude, longitude])
+  @@index([createdAt])
+}
+
+model AIAnalysis {
+  id                 String     @id @default(uuid())
+  reportId           String     @unique
+  report             RoadReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  damageType         String
+  severity           String
+  confidence         Float
+  visibleDamage      Boolean    @default(true)
+  roadSafetyRisk     Int        // 0-100
+  description        String
+  recommendedAction  String
+  isAcceptableQuality Boolean   @default(true)
+  qualityScore       Int        @default(90)
+  isBlurry           Boolean    @default(false)
+  isTooDark          Boolean    @default(false)
+  hasRoadVisible     Boolean    @default(true)
+  qualityWarning     String?
+  potentialDuplicateOf String?
+  isDuplicate        Boolean    @default(false)
+  createdAt          DateTime   @default(now())
+}
+
+model PriorityAssessment {
+  id                 String     @id @default(uuid())
+  reportId           String     @unique
+  report             RoadReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  overallScore       Int        // 0-100
+  riskLevel          String     // LOW, MEDIUM, HIGH, CRITICAL
+  severityScore      Float
+  safetyRiskScore    Float
+  densityScore       Float
+  roadImportanceScore Float
+  recurrenceScore    Float
+  slaUrgencyScore    Float
+  explanation        String     // JSON array of explanation strings
+  createdAt          DateTime   @default(now())
+}
+
+model RepairVerification {
+  id                        String     @id @default(uuid())
+  reportId                  String     @unique
+  report                    RoadReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  beforeImageUrl            String
+  afterImageUrl             String
+  locationMatchConfidence   Int        // 0-100
+  visibleImprovementScore   Int        // 0-100
+  remainingDamageScore      Int        // 0-100
+  overallConfidence         Int        // 0-100
+  recommendation            String     // PASS, NEEDS_REINSPECTION, INCONCLUSIVE
+  recommendationExplanation String
+  authorityDecision         String?    // APPROVED, REJECTED_REINSPECT
+  authorityNotes            String?
+  verifiedAt                DateTime   @default(now())
+}
+
+model StatusTimelineEvent {
+  id          String     @id @default(uuid())
+  reportId    String
+  report      RoadReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  status      String
+  label       String
+  description String
+  timestamp   DateTime   @default(now())
+  actorRole   String?
+  actorName   String?
+  notes       String?
+
+  @@index([reportId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  reportId  String?
+  isRead    Boolean  @default(false)
+  type      String   @default("INFO") // INFO, ASSIGNMENT, SLA_ALERT, VERIFICATION, RESOLUTION
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model SyncQueueMetadata {
+  id             String   @id @default(uuid())
+  clientReportId String   @unique
+  status         String   // PENDING_SYNC, SYNCING, SYNCED, FAILED
+  attempts       Int      @default(0)
+  lastError      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}

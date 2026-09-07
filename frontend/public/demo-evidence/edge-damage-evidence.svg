@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450">
+  <defs>
+    <radialGradient id="asphaltGradient" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#374151" />
+      <stop offset="60%" stop-color="#1f2937" />
+      <stop offset="100%" stop-color="#111827" />
+    </radialGradient>
+    <linearGradient id="soilBerm" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#78350f" />
+      <stop offset="50%" stop-color="#451a03" />
+      <stop offset="100%" stop-color="#292524" />
+    </linearGradient>
+  </defs>
+
+  <!-- Pavement Base -->
+  <rect width="800" height="450" fill="url(#asphaltGradient)" />
+
+  <!-- Road Center Line -->
+  <rect x="120" y="0" width="12" height="120" fill="#ffffff" opacity="0.8" />
+  <rect x="120" y="170" width="12" height="120" fill="#ffffff" opacity="0.8" />
+  <rect x="120" y="320" width="12" height="120" fill="#ffffff" opacity="0.8" />
+
+  <!-- Collapsed Eeroded Shoulder / Berm -->
+  <path d="M 520,0 L 530,120 Q 480,180 500,260 L 530,340 Q 460,400 490,450 L 800,450 L 800,0 Z" fill="url(#soilBerm)" />
+
+  <!-- Ragged Asphalt Edge Drop-Off Line -->
+  <path d="M 520,0 L 530,120 Q 480,180 500,260 L 530,340 Q 460,400 490,450" fill="none" stroke="#0f172a" stroke-width="8" stroke-linecap="round" />
+  <path d="M 520,0 L 530,120 Q 480,180 500,260 L 530,340 Q 460,400 490,450" fill="none" stroke="#713f12" stroke-width="3" stroke-linecap="round" />
+
+  <!-- Scoured soil erosion gullies -->
+  <path d="M 540,140 Q 610,160 690,150" stroke="#292524" stroke-width="4" fill="none" />
+  <path d="M 510,210 Q 580,240 710,220" stroke="#292524" stroke-width="5" fill="none" />
+  <path d="M 540,310 Q 620,330 730,310" stroke="#292524" stroke-width="4" fill="none" />
+
+  <!-- Warning indicator -->
+  <g transform="translate(560, 160)">
+    <rect width="210" height="46" rx="8" fill="#0f172a" fill-opacity="0.9" stroke="#f97316" stroke-width="1.5" />
+    <text x="15" y="20" font-family="sans-serif" font-size="11" font-weight="bold" fill="#fdba74">BERM SCOUR COLLAPSE</text>
+    <text x="15" y="36" font-family="monospace" font-size="10" fill="#94a3b8">EDGE DROP-OFF: 24cm</text>
+  </g>
+
+  <!-- Watermark / Demo Evidence Label -->
+  <g transform="translate(20, 20)">
+    <rect width="360" height="30" rx="6" fill="#0f172a" fill-opacity="0.9" stroke="#f59e0b" stroke-width="1.5" />
+    <text x="15" y="20" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#fbbf24">
+      DEMO EVIDENCE • ROAD DISTRESS TEST CASE
+    </text>
+  </g>
+
+  <!-- Technical Telemetry Footer -->
+  <g transform="translate(20, 410)">
+    <rect width="520" height="26" rx="5" fill="#020617" fill-opacity="0.85" />
+    <text x="12" y="18" font-family="monospace" font-size="11" fill="#94a3b8">
+      LOC: 28.9810° N, 77.7460° E • UNIVERSITY ROAD CORRIDOR • BERM FAILURE
+    </text>
+  </g>
+</svg>

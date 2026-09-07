@@ -1,0 +1,22 @@
+{
+  "name": "roadguard-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ROADGUARD AI - Smart Road Safety & Accountability Platform (SIH 2026 MB-04)",
+  "scripts": {
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix backend && npm run build --prefix frontend",
+    "test": "npm test --prefix backend",
+    "seed": "npm run seed --prefix backend"
+  },
+  "keywords": [
+    "smart-india-hackathon",
+    "road-safety",
+    "civic-tech",
+    "ai",
+    "tender-intelligence"
+  ],
+  "author": "Team YuvaTech",
+  "license": "MIT"
+}
