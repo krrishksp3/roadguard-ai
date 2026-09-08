@@ -14,6 +14,7 @@ export default defineConfig({
         'icons/*.png',
         'icons/*.svg',
         'demo-evidence/*.svg',
+        'demo-evidence/*.jpg',
       ],
       manifest: {
         name: 'RoadGuard AI',

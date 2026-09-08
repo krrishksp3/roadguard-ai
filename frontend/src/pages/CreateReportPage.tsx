@@ -12,6 +12,10 @@ interface DemoPreset {
   filename: string;
   desc: string;
   type: string;
+  license: string;
+  author: string;
+  sourceUrl: string;
+  originalLocation: string;
 }
 
 const fileToBase64 = (file: File): Promise<string> => {
@@ -32,25 +36,59 @@ const generateClientId = (): string => {
 
 const demoPresets: DemoPreset[] = [
   {
-    name: 'Deep Asphalt Pothole',
-    url: '/demo-evidence/pothole-evidence.svg',
-    filename: 'pothole-evidence.svg',
-    desc: 'Severe depression and deep pothole exceeding 18cm right on vehicular path near Jail Chungi crossing, Meerut.',
+    name: 'Potholes on Road (Assam, India)',
+    url: '/demo-evidence/potholes-on-road.jpg',
+    filename: 'potholes-on-road.jpg',
+    desc: '[SYNTHETIC DEMO] Deep depression and road pothole cavity exceeding 18cm right on vehicular lane near Jail Chungi crossing, Meerut.',
     type: 'pothole',
+    license: 'CC BY-SA 4.0',
+    author: 'KEmel49',
+    sourceUrl: 'https://commons.wikimedia.org/wiki/File:Potholes_on_road.jpg',
+    originalLocation: 'Assam, India',
   },
   {
-    name: 'Severe Waterlogging',
-    url: '/demo-evidence/waterlogging-evidence.svg',
-    filename: 'waterlogging-evidence.svg',
-    desc: 'Extensive standing sewage and storm water covering carriage lane near Surajkund Road, Meerut.',
+    name: 'Potholes in Bengaluru Road',
+    url: '/demo-evidence/potholes-bengaluru-road.jpg',
+    filename: 'potholes-bengaluru-road.jpg',
+    desc: '[SYNTHETIC DEMO] Multiple pavement potholes and surface disintegration creating two-wheeler hazard near Delhi Road, Meerut.',
+    type: 'pothole',
+    license: 'CC0 1.0 Universal',
+    author: 'Mallikarjunasj',
+    sourceUrl: 'https://commons.wikimedia.org/wiki/File:Potholes_in_Bengaluru_road.jpg',
+    originalLocation: 'Bengaluru, Karnataka, India',
+  },
+  {
+    name: 'Waterlogged Pothole Hazard',
+    url: '/demo-evidence/waterlogged-pothole.jpg',
+    filename: 'waterlogged-pothole.jpg',
+    desc: '[SYNTHETIC DEMO] Submerged road cavity and extensive storm waterlogging concealing road rupture near Surajkund Road, Meerut.',
     type: 'waterlogging',
+    license: 'CC BY-SA 4.0',
+    author: 'Joshuamanboah',
+    sourceUrl: 'https://commons.wikimedia.org/wiki/File:A_Pothole_on_road_with_water.jpg',
+    originalLocation: 'Wikimedia Commons Upload',
   },
   {
-    name: 'Longitudinal Cracking',
-    url: '/demo-evidence/crack-evidence.svg',
-    filename: 'crack-evidence.svg',
-    desc: 'Continuous structural longitudinal shear cracks and alligator fatigue along the wheel-path on Baghpat Bypass Road, Meerut.',
+    name: 'Large Road Pothole / Fracture',
+    url: '/demo-evidence/large-road-pothole.jpg',
+    filename: 'large-road-pothole.jpg',
+    desc: '[SYNTHETIC DEMO] Deep longitudinal pavement fracture and asphalt cavity along heavy-traffic wheelpath near Baghpat Bypass, Meerut.',
     type: 'crack',
+    license: 'CC BY-SA 4.0',
+    author: 'Antorsu10',
+    sourceUrl: 'https://commons.wikimedia.org/wiki/File:Road_pothole.jpg',
+    originalLocation: 'Wikimedia Commons Upload',
+  },
+  {
+    name: 'Driving Through Potholes / Edge Breakdown',
+    url: '/demo-evidence/driving-through-potholes.jpg',
+    filename: 'driving-through-potholes.jpg',
+    desc: '[SYNTHETIC DEMO] Collapsed road edge and washed-out subbase causing hazardous shoulder dropoff near Garh Road, Meerut.',
+    type: 'road_edge_damage',
+    license: 'CC BY-SA 4.0',
+    author: 'KEmel49',
+    sourceUrl: 'https://commons.wikimedia.org/wiki/File:Driving_through_potholes.jpg',
+    originalLocation: 'Assam, India',
   },
 ];
 
@@ -58,6 +96,7 @@ export const CreateReportPage: React.FC = () => {
   const navigate = useNavigate();
 
   // Photo Evidence state
+  const [selectedPreset, setSelectedPreset] = useState<DemoPreset | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string>('');
   const [imageFilename, setImageFilename] = useState<string>('');
@@ -130,11 +169,12 @@ export const CreateReportPage: React.FC = () => {
 
   // Quick preset selection
   const handleSelectPreset = (preset: DemoPreset) => {
+    setSelectedPreset(preset);
     setSelectedFile(null);
     setImageUrl(preset.url);
     setImageFilename(preset.filename);
     setImageFileSize(undefined);
-    setEvidenceSource('DEMO_SYNTHETIC');
+    setEvidenceSource('LICENSED_EXTERNAL');
     setDescription(preset.desc);
     setDamageTypeHint(preset.type);
     setError('');
@@ -142,6 +182,7 @@ export const CreateReportPage: React.FC = () => {
 
   // Photo upload handler
   const handlePhotoSelect = (file: File, previewUrl: string) => {
+    setSelectedPreset(null);
     setSelectedFile(file);
     setImageUrl(previewUrl);
     setImageFilename(file.name);
@@ -151,6 +192,7 @@ export const CreateReportPage: React.FC = () => {
   };
 
   const handlePhotoClear = () => {
+    setSelectedPreset(null);
     setSelectedFile(null);
     setImageUrl('');
     setImageFilename('');
@@ -236,11 +278,17 @@ export const CreateReportPage: React.FC = () => {
         imageUrl: finalImageUrl,
         evidenceSource,
         evidenceSourceMetadata:
-          evidenceSource === 'DEMO_SYNTHETIC'
+          evidenceSource === 'LICENSED_EXTERNAL' || evidenceSource === 'DEMO_SYNTHETIC'
             ? JSON.stringify({
-                title: 'IRC Pavement Distress Calibration Dataset',
-                source: 'MoRTH & Indian Roads Congress IRC:82 Test Reference',
-                note: 'Explicitly labeled DEMO EVIDENCE for SIH 2026 Internal Hackathon',
+                title: selectedPreset?.name || 'Road Distress Demonstration Photo',
+                source: 'Wikimedia Commons',
+                sourceUrl: selectedPreset?.sourceUrl || 'https://commons.wikimedia.org',
+                license: selectedPreset?.license || 'CC BY-SA 4.0',
+                author: selectedPreset?.author || 'Wikimedia Contributor',
+                originalLocation: selectedPreset?.originalLocation || 'India',
+                nature: 'LICENSED_EXTERNAL / SYNTHETIC DEMO EVIDENCE',
+                note: 'Real photograph licensed under Creative Commons used as synthetic reference evidence for SIH 2026 hackathon demonstration. NOT captured in Meerut.',
+                isSyntheticDemo: true,
               })
             : undefined,
         imageFilename: imageFilename || undefined,
@@ -376,7 +424,7 @@ export const CreateReportPage: React.FC = () => {
               <span className="text-[10px] text-slate-400">Labeled DEMO EVIDENCE</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {demoPresets.map((preset, i) => {
                 const isSelected = imageUrl === preset.url;
                 return (
@@ -384,24 +432,63 @@ export const CreateReportPage: React.FC = () => {
                     key={i}
                     type="button"
                     onClick={() => handleSelectPreset(preset)}
-                    className={`p-2.5 rounded-xl text-left border transition text-xs flex flex-col justify-between space-y-1 ${
+                    className={`p-2 rounded-xl text-left border transition text-xs flex items-center space-x-2.5 ${
                       isSelected
                         ? 'border-amber-500 bg-amber-50/80 text-amber-950 ring-2 ring-amber-200'
                         : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
                     }`}
                   >
-                    <div className="flex items-center justify-between w-full">
-                      <span className="font-bold truncate">{preset.name}</span>
-                      <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-amber-200/80 text-amber-900 font-semibold font-mono">
-                        DEMO
-                      </span>
+                    <img
+                      src={preset.url}
+                      alt={preset.name}
+                      className="w-12 h-12 rounded-lg object-cover border border-slate-200 shrink-0 bg-slate-100"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold truncate text-[11px] text-slate-900">{preset.name}</span>
+                      </div>
+                      <div className="flex items-center space-x-1.5 mt-0.5">
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 font-semibold font-mono">
+                          {preset.license}
+                        </span>
+                        <span className="text-[9px] text-slate-400 truncate">Wikimedia</span>
+                      </div>
                     </div>
-                    <span className="text-[10px] text-slate-500 line-clamp-1">{preset.desc}</span>
                   </button>
                 );
               })}
             </div>
           </div>
+
+          {/* Attribution Box if Real Licensed Preset is Active */}
+          {selectedPreset && (
+            <div className="p-3 bg-amber-50/90 border border-amber-200/80 rounded-xl text-xs space-y-1">
+              <div className="flex items-center justify-between text-amber-900 font-bold">
+                <span className="flex items-center space-x-1.5">
+                  <ShieldAlert className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Licensed External Photograph Selected</span>
+                </span>
+                <span className="font-mono text-[10px] bg-amber-200 px-1.5 py-0.5 rounded text-amber-900 font-semibold">
+                  {selectedPreset.license}
+                </span>
+              </div>
+              <p className="text-[11px] text-amber-800">
+                Source: <strong>{selectedPreset.name}</strong> by {selectedPreset.author} via{' '}
+                <a
+                  href={selectedPreset.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-amber-950"
+                >
+                  Wikimedia Commons
+                </a>{' '}
+                ({selectedPreset.originalLocation}).
+              </p>
+              <p className="text-[10px] text-amber-700 italic">
+                Synthetic Demo Record: Real road photograph used under reusable license for demonstration. Not captured in Meerut.
+              </p>
+            </div>
+          )}
 
           {/* Unified Photo Upload Component */}
           <RoadPhotoUpload

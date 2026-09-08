@@ -164,7 +164,7 @@ export const RoadPhotoUpload: React.FC<RoadPhotoUploadProps> = ({
     }
   }, []);
 
-  const isDemo = evidenceSource === 'DEMO_SYNTHETIC';
+  const isDemo = evidenceSource === 'DEMO_SYNTHETIC' || evidenceSource === 'LICENSED_EXTERNAL';
 
   return (
     <div className="space-y-3">
@@ -220,12 +220,12 @@ export const RoadPhotoUpload: React.FC<RoadPhotoUploadProps> = ({
               {isDemo ? (
                 <div className="flex items-center space-x-1 bg-amber-500/90 backdrop-blur-md text-amber-950 font-bold px-2.5 py-1 rounded-lg text-[10px] tracking-wide border border-amber-300/40 shadow-sm">
                   <ShieldAlert className="w-3 h-3 text-amber-950" />
-                  <span>DEMO EVIDENCE • TEST PRESET</span>
+                  <span>LICENSED EXTERNAL DEMO EVIDENCE (CC)</span>
                 </div>
               ) : (
                 <div className="flex items-center space-x-1 bg-emerald-600/90 backdrop-blur-md text-white font-bold px-2.5 py-1 rounded-lg text-[10px] tracking-wide border border-emerald-400/40 shadow-sm">
                   <CheckCircle2 className="w-3 h-3 text-emerald-200" />
-                  <span>USER UPLOADED EVIDENCE</span>
+                  <span>CITIZEN CAPTURED PHOTO</span>
                 </div>
               )}
             </div>
@@ -245,7 +245,7 @@ export const RoadPhotoUpload: React.FC<RoadPhotoUploadProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-2 pt-1 px-1">
             <div className="flex items-center space-x-2 text-xs text-slate-700 min-w-0">
               <span className="font-semibold truncate max-w-[200px] sm:max-w-xs">
-                {currentFilename || (isDemo ? 'demo-evidence-preset.svg' : 'road_photo_evidence.jpg')}
+                {currentFilename || (isDemo ? 'potholes-on-road.jpg' : 'road_photo_evidence.jpg')}
               </span>
               {currentFileSize && (
                 <span className="text-slate-400 text-[11px] font-mono">

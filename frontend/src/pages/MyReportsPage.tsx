@@ -211,11 +211,20 @@ export const MyReportsPage: React.FC = () => {
                 className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm hover:border-gov-500 hover:shadow-md transition flex flex-col justify-between space-y-3 group"
               >
                 <div className="flex space-x-3">
-                  <img
-                    src={report.imageUrl}
-                    alt={report.damageType}
-                    className="w-20 h-20 rounded-xl object-cover border border-slate-200 shrink-0"
-                  />
+                  <div className="relative w-20 h-20 shrink-0">
+                    <img
+                      src={report.imageUrl}
+                      alt={report.damageType}
+                      className="w-20 h-20 rounded-xl object-cover border border-slate-200"
+                    />
+                    {(report.evidenceSource === 'LICENSED_EXTERNAL' ||
+                      report.evidenceSource === 'DEMO_SYNTHETIC' ||
+                      report.imageUrl?.includes('demo-evidence')) && (
+                      <span className="absolute bottom-1 right-1 bg-slate-900/80 text-amber-300 text-[8px] font-bold px-1 py-0.5 rounded shadow-xs">
+                        CC DEMO
+                      </span>
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-mono font-bold text-xs text-slate-900 group-hover:text-gov-700 transition">

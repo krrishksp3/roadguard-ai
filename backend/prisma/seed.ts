@@ -409,14 +409,99 @@ async function main() {
   // 5. Seed 32 Realistic Road Reports with Consistent Meerut Locations
   console.log('Seeding 32 realistic road complaints across authentic Meerut locations...');
 
-  const demoEvidenceMap: Record<string, { url: string; filename: string }> = {
-    pothole: { url: '/demo-evidence/pothole-evidence.svg', filename: 'pothole-evidence.svg' },
-    waterlogging: { url: '/demo-evidence/waterlogging-evidence.svg', filename: 'waterlogging-evidence.svg' },
-    crack: { url: '/demo-evidence/crack-evidence.svg', filename: 'crack-evidence.svg' },
-    surface_deterioration: { url: '/demo-evidence/crack-evidence.svg', filename: 'crack-evidence.svg' },
-    road_edge_damage: { url: '/demo-evidence/edge-damage-evidence.svg', filename: 'edge-damage-evidence.svg' },
-    drainage_damage: { url: '/demo-evidence/waterlogging-evidence.svg', filename: 'waterlogging-evidence.svg' },
-    signage_damage: { url: '/demo-evidence/edge-damage-evidence.svg', filename: 'edge-damage-evidence.svg' },
+  const demoEvidenceMap: Record<
+    string,
+    {
+      url: string;
+      filename: string;
+      mimeType: string;
+      title: string;
+      sourceUrl: string;
+      license: string;
+      author: string;
+      originalLocation: string;
+    }
+  > = {
+    pothole: {
+      url: '/demo-evidence/potholes-on-road.jpg',
+      filename: 'potholes-on-road.jpg',
+      mimeType: 'image/jpeg',
+      title: 'Potholes on road.jpg',
+      sourceUrl: 'https://commons.wikimedia.org/wiki/File:Potholes_on_road.jpg',
+      license: 'CC BY-SA 4.0',
+      author: 'KEmel49',
+      originalLocation: 'Assam, India',
+    },
+    pothole_alt: {
+      url: '/demo-evidence/potholes-bengaluru-road.jpg',
+      filename: 'potholes-bengaluru-road.jpg',
+      mimeType: 'image/jpeg',
+      title: 'Potholes in Bengaluru road.jpg',
+      sourceUrl: 'https://commons.wikimedia.org/wiki/File:Potholes_in_Bengaluru_road.jpg',
+      license: 'CC0 1.0 Universal',
+      author: 'Mallikarjunasj',
+      originalLocation: 'Bengaluru, Karnataka, India',
+    },
+    waterlogging: {
+      url: '/demo-evidence/waterlogged-pothole.jpg',
+      filename: 'waterlogged-pothole.jpg',
+      mimeType: 'image/jpeg',
+      title: 'A Pothole on road with water.jpg',
+      sourceUrl: 'https://commons.wikimedia.org/wiki/File:A_Pothole_on_road_with_water.jpg',
+      license: 'CC BY-SA 4.0',
+      author: 'Joshuamanboah',
+      originalLocation: 'Wikimedia Commons Contributor Upload',
+    },
+    drainage_damage: {
+      url: '/demo-evidence/waterlogged-pothole.jpg',
+      filename: 'waterlogged-pothole.jpg',
+      mimeType: 'image/jpeg',
+      title: 'A Pothole on road with water.jpg',
+      sourceUrl: 'https://commons.wikimedia.org/wiki/File:A_Pothole_on_road_with_water.jpg',
+      license: 'CC BY-SA 4.0',
+      author: 'Joshuamanboah',
+      originalLocation: 'Wikimedia Commons Contributor Upload',
+    },
+    crack: {
+      url: '/demo-evidence/large-road-pothole.jpg',
+      filename: 'large-road-pothole.jpg',
+      mimeType: 'image/jpeg',
+      title: 'Road pothole.jpg',
+      sourceUrl: 'https://commons.wikimedia.org/wiki/File:Road_pothole.jpg',
+      license: 'CC BY-SA 4.0',
+      author: 'Antorsu10',
+      originalLocation: 'Wikimedia Commons Contributor Upload',
+    },
+    surface_deterioration: {
+      url: '/demo-evidence/large-road-pothole.jpg',
+      filename: 'large-road-pothole.jpg',
+      mimeType: 'image/jpeg',
+      title: 'Road pothole.jpg',
+      sourceUrl: 'https://commons.wikimedia.org/wiki/File:Road_pothole.jpg',
+      license: 'CC BY-SA 4.0',
+      author: 'Antorsu10',
+      originalLocation: 'Wikimedia Commons Contributor Upload',
+    },
+    road_edge_damage: {
+      url: '/demo-evidence/driving-through-potholes.jpg',
+      filename: 'driving-through-potholes.jpg',
+      mimeType: 'image/jpeg',
+      title: 'Driving through potholes.jpg',
+      sourceUrl: 'https://commons.wikimedia.org/wiki/File:Driving_through_potholes.jpg',
+      license: 'CC BY-SA 4.0',
+      author: 'KEmel49',
+      originalLocation: 'Assam, India',
+    },
+    signage_damage: {
+      url: '/demo-evidence/driving-through-potholes.jpg',
+      filename: 'driving-through-potholes.jpg',
+      mimeType: 'image/jpeg',
+      title: 'Driving through potholes.jpg',
+      sourceUrl: 'https://commons.wikimedia.org/wiki/File:Driving_through_potholes.jpg',
+      license: 'CC BY-SA 4.0',
+      author: 'KEmel49',
+      originalLocation: 'Assam, India',
+    },
   };
 
   const reportTemplates = [
@@ -514,7 +599,7 @@ async function main() {
       desc: 'Sharp-edged pothole on Hapur Road repaired with dense bituminous asphalt overlay under municipal contract.',
       img: demoEvidenceMap.pothole.url,
       filename: demoEvidenceMap.pothole.filename,
-      afterImg: '/demo-evidence/repaired-road-evidence.svg',
+      afterImg: '/demo-evidence/repaired-road-patch.jpg',
       isRec: false,
       isDup: false,
     },
@@ -676,7 +761,9 @@ async function main() {
     const chosenStatus = statuses[i % statuses.length];
     const risk = chosenSev === 'critical' ? 84 + (i % 10) : chosenSev === 'high' ? 68 + (i % 12) : 40 + (i % 20);
 
-    const asset = demoEvidenceMap[chosenType] || demoEvidenceMap.pothole;
+    const asset = chosenType === 'pothole' && i % 2 === 1
+      ? demoEvidenceMap.pothole_alt
+      : (demoEvidenceMap[chosenType] || demoEvidenceMap.pothole);
 
     // Plausible slight offsets within ~100-300m
     const offsetLat = ((i * 3) % 11 - 5) * 0.0008;
@@ -706,22 +793,27 @@ async function main() {
     const createdAt = new Date(Date.now() - (isOverdue ? 72 : 12) * 3600000);
     const slaDueAt = new Date(createdAt.getTime() + hours * 3600000);
 
+    const matchedAsset = Object.values(demoEvidenceMap).find((a) => a.url === t.img) || demoEvidenceMap.pothole;
+
     await prisma.roadReport.create({
       data: {
         id: t.id,
         userId: citizenUser.id,
         imageUrl: t.img,
-        evidenceSource: 'DEMO_SYNTHETIC',
+        evidenceSource: 'LICENSED_EXTERNAL',
         evidenceSourceMetadata: JSON.stringify({
-          title: `${t.type.replace(/_/g, ' ').toUpperCase()} Distress Reference Evidence`,
-          source: 'MoRTH & Indian Roads Congress IRC:82 Test Dataset',
-          sourceUrl: 'https://morth.nic.in',
-          date: '2025-08-15',
-          attribution: 'Calibrated Pavement Distress Synthetic Demonstration Asset',
-          note: 'Explicitly labeled DEMO EVIDENCE for SIH 2026 Internal Hackathon',
+          title: matchedAsset.title,
+          source: 'Wikimedia Commons',
+          sourceUrl: matchedAsset.sourceUrl,
+          license: matchedAsset.license,
+          author: matchedAsset.author,
+          originalLocation: matchedAsset.originalLocation,
+          nature: 'LICENSED_EXTERNAL / SYNTHETIC DEMO EVIDENCE',
+          note: 'Real photograph licensed under Creative Commons used as synthetic reference evidence for SIH 2026 hackathon demonstration. NOT captured in Meerut.',
+          isSyntheticDemo: true,
         }),
-        imageFilename: (t as any).filename || 'pothole-evidence.svg',
-        imageMimeType: 'image/svg+xml',
+        imageFilename: (t as any).filename || matchedAsset.filename,
+        imageMimeType: matchedAsset.mimeType,
         latitude: t.lat,
         longitude: t.lng,
         address: (t as any).locName || `${t.seg.name}, Meerut`,

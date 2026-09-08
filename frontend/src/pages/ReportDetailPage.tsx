@@ -67,6 +67,19 @@ export const ReportDetailPage: React.FC = () => {
   }
 
   const tender = report.roadSegment?.tender;
+  const isDemoEvidence =
+    report.evidenceSource === 'DEMO_SYNTHETIC' ||
+    report.evidenceSource === 'LICENSED_EXTERNAL' ||
+    Boolean(report.imageUrl?.includes('demo-evidence'));
+
+  let evidenceMeta: any = null;
+  if (report.evidenceSourceMetadata) {
+    try {
+      evidenceMeta = JSON.parse(report.evidenceSourceMetadata);
+    } catch {
+      evidenceMeta = null;
+    }
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
@@ -122,10 +135,10 @@ export const ReportDetailPage: React.FC = () => {
                 <div className="bg-slate-900/80 backdrop-blur-sm text-white px-3 py-1 rounded-lg text-xs font-mono">
                   Lat: {report.latitude.toFixed(5)}, Lng: {report.longitude.toFixed(5)}
                 </div>
-                {report.evidenceSource === 'DEMO_SYNTHETIC' ? (
+                {isDemoEvidence ? (
                   <div className="bg-amber-500/90 backdrop-blur-md text-amber-950 font-bold px-2.5 py-1 rounded-lg text-[10px] tracking-wide flex items-center space-x-1 shadow-sm">
                     <ShieldAlert className="w-3 h-3 text-amber-950" />
-                    <span>DEMO EVIDENCE</span>
+                    <span>SYNTHETIC DEMO EVIDENCE (CC)</span>
                   </div>
                 ) : (
                   <div className="bg-emerald-600/90 backdrop-blur-md text-white font-bold px-2.5 py-1 rounded-lg text-[10px] tracking-wide shadow-sm">
@@ -142,6 +155,29 @@ export const ReportDetailPage: React.FC = () => {
                 <ZoomIn className="w-4 h-4" />
               </button>
             </div>
+            {isDemoEvidence && (
+              <div className="mx-5 mt-4 p-3 bg-amber-50/80 border border-amber-200/80 rounded-xl text-xs space-y-1">
+                <div className="flex items-center justify-between text-amber-900 font-bold">
+                  <span className="flex items-center space-x-1.5">
+                    <ShieldAlert className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Real Photograph Reference (Licensed External)</span>
+                  </span>
+                  {evidenceMeta?.license && (
+                    <span className="font-mono text-[10px] bg-amber-200 px-1.5 py-0.5 rounded text-amber-900 font-semibold">
+                      {evidenceMeta.license}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-amber-800">
+                  {evidenceMeta?.title || 'Road Pothole Photograph'} via{' '}
+                  <span className="font-semibold">Wikimedia Commons</span>
+                  {evidenceMeta?.author ? ` (Author: ${evidenceMeta.author})` : ''}.
+                </p>
+                <p className="text-[10px] text-amber-700 italic">
+                  Synthetic Demo Record: Used under reusable license for demonstration. Not captured in Meerut.
+                </p>
+              </div>
+            )}
             <div className="p-5 space-y-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Citizen Distress Description</h3>
               <p className="text-sm text-slate-800 font-medium leading-relaxed">{report.description}</p>
