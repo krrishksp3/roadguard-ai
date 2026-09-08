@@ -8,9 +8,17 @@ export const LandingPage: React.FC = () => {
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-b from-slate-900 via-gov-navy to-slate-950 text-white py-20 px-4 sm:px-6 lg:px-8 rounded-3xl mx-4 sm:mx-8 shadow-2xl border border-slate-800">
         <div className="max-w-4xl mx-auto text-center space-y-6">
-          <div className="inline-flex items-center space-x-2 bg-gov-700/40 border border-gov-500/40 text-gov-100 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider backdrop-blur-sm">
-            <Cpu className="w-3.5 h-3.5 text-gov-500" />
-            <span>Smart India Hackathon 2026 • Problem MB-04</span>
+          <div className="inline-flex items-center space-x-2.5 bg-slate-900/80 border border-slate-700/80 px-4 py-1.5 rounded-full shadow-lg backdrop-blur-sm">
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-gov-500 to-gov-700 flex items-center justify-center text-white shadow">
+              <Shield className="w-3.5 h-3.5 text-white" />
+            </div>
+            <div className="flex items-center space-x-1">
+              <span className="font-heading font-extrabold text-sm tracking-tight text-white">ROADGUARD</span>
+              <span className="text-[10px] bg-gov-500 text-white px-1.5 py-0.5 rounded font-bold">AI</span>
+            </div>
+            <span className="text-slate-400 text-xs hidden sm:inline border-l border-slate-700 pl-2.5">
+              Public Infrastructure Intelligence & Safety Platform
+            </span>
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight font-heading leading-tight">
@@ -51,19 +59,34 @@ export const LandingPage: React.FC = () => {
             </Link>
           </div>
 
-          {/* Quick Demo Credentials Banner */}
-          <div className="mt-8 pt-6 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-400 font-mono">
-            <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
-              <span className="text-slate-300 font-semibold block">Citizen Demo:</span>
-              citizen@roadguard.demo / citizen123
+          {/* Institutional Infrastructure Workflow Ribbon */}
+          <div className="mt-8 pt-6 border-t border-slate-800/80 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+            <div className="bg-slate-900/40 p-3.5 rounded-xl border border-slate-800/80 flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center flex-shrink-0">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-slate-200 font-semibold text-xs block">Inter-Agency Routing</span>
+                <span className="text-[11px] text-slate-400 leading-tight block">Automated matching to PWD, Nagar Nigam & NHAI divisions</span>
+              </div>
             </div>
-            <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
-              <span className="text-amber-400 font-semibold block">Authority Demo (PWD):</span>
-              authority@roadguard.demo / authority123
+            <div className="bg-slate-900/40 p-3.5 rounded-xl border border-slate-800/80 flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center flex-shrink-0">
+                <Activity className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-slate-200 font-semibold text-xs block">Objective Prioritization</span>
+                <span className="text-[11px] text-slate-400 leading-tight block">Multi-factor road risk index & spatial cluster deduplication</span>
+              </div>
             </div>
-            <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
-              <span className="text-gov-500 font-semibold block">Admin Demo:</span>
-              admin@roadguard.demo / admin123
+            <div className="bg-slate-900/40 p-3.5 rounded-xl border border-slate-800/80 flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center flex-shrink-0">
+                <Shield className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-slate-200 font-semibold text-xs block">Verified Civil Remediation</span>
+                <span className="text-[11px] text-slate-400 leading-tight block">Mandatory pre- & post-repair photographic verification</span>
+              </div>
             </div>
           </div>
         </div>

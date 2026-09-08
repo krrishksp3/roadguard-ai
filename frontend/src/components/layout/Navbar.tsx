@@ -31,8 +31,8 @@ export const Navbar: React.FC = () => {
                 <span className="font-heading font-extrabold text-lg tracking-tight text-white">ROADGUARD</span>
                 <span className="text-xs bg-gov-500 text-white px-1.5 py-0.5 rounded font-bold">AI</span>
               </div>
-              <p className="text-[10px] text-slate-400 font-mono tracking-tight hidden sm:block">
-                Smart India Hackathon 2026 • MB-04
+              <p className="text-[10px] text-slate-400 font-medium tracking-tight hidden sm:block">
+                Public Infrastructure Safety Platform
               </p>
             </div>
           </Link>

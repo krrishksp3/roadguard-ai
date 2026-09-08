@@ -59,6 +59,9 @@ export function resolveImageUrl(url?: string | null): string {
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
     return url;
   }
+  if (url.startsWith('/demo-evidence') || url.startsWith('demo-evidence')) {
+    return url.startsWith('/') ? url : `/${url}`;
+  }
   const backendRoot = getBaseApiUrl().replace(/\/api\/?$/, '');
   const cleanPath = url.startsWith('/') ? url : `/${url}`;
   return `${backendRoot}${cleanPath}`;
