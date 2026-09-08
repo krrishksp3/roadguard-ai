@@ -8,14 +8,60 @@ import {
   ComplaintStatus,
 } from '../../../shared/types';
 
-function getBaseApiUrl(): string {
-  const raw = import.meta.env.VITE_API_URL;
-  if (!raw) return '/api';
-  let clean = raw.trim().replace(/\/+$/, '');
-  if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('/')) {
+export function getBaseApiUrl(): string {
+  const raw = (import.meta.env.VITE_API_URL || '').trim();
+
+  // If in browser environment
+  if (typeof window !== 'undefined') {
+    const isRender = window.location.hostname.includes('onrender.com');
+    // If deployed on Render and VITE_API_URL is missing or set to localhost/internal host
+    if (isRender) {
+      if (!raw || raw.includes('localhost') || raw.includes('127.0.0.1')) {
+        return 'https://roadguard-backend-ghhb.onrender.com/api';
+      }
+    }
+  }
+
+  if (!raw) {
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      return 'http://localhost:5000/api';
+    }
+    return '/api';
+  }
+
+  let clean = raw.replace(/\/+$/, '');
+
+  // If internal Render host was passed without .onrender.com (e.g. roadguard-backend-ghhb)
+  if (!clean.includes('.') && clean.includes('roadguard-backend')) {
+    clean = `https://${clean}.onrender.com`;
+  } else if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('/')) {
     clean = `https://${clean}`;
   }
+
+  // Handle case where https://roadguard-backend-ghhb was passed without TLD
+  try {
+    if (clean.startsWith('http://') || clean.startsWith('https://')) {
+      const urlObj = new URL(clean);
+      if (!urlObj.hostname.includes('.') && urlObj.hostname.includes('roadguard-backend')) {
+        urlObj.hostname = `${urlObj.hostname}.onrender.com`;
+        clean = urlObj.toString().replace(/\/+$/, '');
+      }
+    }
+  } catch (_) {
+    // Ignore URL parse error
+  }
+
   return clean.endsWith('/api') ? clean : `${clean}/api`;
+}
+
+export function resolveImageUrl(url?: string | null): string {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
+    return url;
+  }
+  const backendRoot = getBaseApiUrl().replace(/\/api\/?$/, '');
+  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  return `${backendRoot}${cleanPath}`;
 }
 
 const API_BASE_URL = getBaseApiUrl();

@@ -40,8 +40,15 @@ app.use(
         return callback(null, true);
       }
 
-      // In production, check explicitly against configured origins or allow if wildcard set
-      if (configuredOrigins.length === 0 || configuredOrigins.includes('*') || configuredOrigins.includes(origin)) {
+      // In production, check explicitly against configured origins, wildcard, or any onrender.com origin
+      if (
+        configuredOrigins.length === 0 ||
+        configuredOrigins.includes('*') ||
+        configuredOrigins.includes(origin) ||
+        origin.endsWith('.onrender.com') ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1')
+      ) {
         return callback(null, true);
       }
 
