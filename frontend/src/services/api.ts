@@ -9,9 +9,12 @@ import {
 } from '../../../shared/types';
 
 function getBaseApiUrl(): string {
-  const envUrl = import.meta.env.VITE_API_URL;
-  if (!envUrl) return '/api';
-  const clean = envUrl.replace(/\/+$/, '');
+  const raw = import.meta.env.VITE_API_URL;
+  if (!raw) return '/api';
+  let clean = raw.trim().replace(/\/+$/, '');
+  if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('/')) {
+    clean = `https://${clean}`;
+  }
   return clean.endsWith('/api') ? clean : `${clean}/api`;
 }
 

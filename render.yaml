@@ -25,10 +25,7 @@ services:
       - key: AI_PROVIDER
         value: demo
       - key: FRONTEND_URL
-        fromService:
-          type: web
-          name: roadguard-frontend
-          property: url
+        value: "*"
 
   # ==========================================
   # ROADGUARD AI PROGRESSIVE WEB APP (PWA)
@@ -36,8 +33,6 @@ services:
   - type: web
     name: roadguard-frontend
     runtime: static
-    plan: free
-    region: oregon
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
@@ -50,7 +45,7 @@ services:
         fromService:
           type: web
           name: roadguard-backend
-          property: url
+          property: host
 
 # ==========================================
 # PRODUCTION POSTGRESQL DATABASE
