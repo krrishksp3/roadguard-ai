@@ -17,3 +17,5 @@ dev-dist/
 web-build/
 backend/uploads/evidence-*
 !backend/uploads/.gitkeep
+__pycache__/
+*.pyc
