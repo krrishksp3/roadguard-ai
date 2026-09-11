@@ -1,5 +1,5 @@
 import React from 'react';
-import { PriorityAssessment } from '../../../../shared/types';
+import { PriorityAssessment, getRiskLevelFromScore } from '../../../../shared/types';
 import { AlertTriangle, ShieldAlert, CheckCircle2 } from 'lucide-react';
 
 interface RiskScoreMeterProps {
@@ -9,6 +9,8 @@ interface RiskScoreMeterProps {
 }
 
 export const RiskScoreMeter: React.FC<RiskScoreMeterProps> = ({ score, priorityAssessment, compact = false }) => {
+  const riskLevel = getRiskLevelFromScore(score);
+
   let color = 'text-green-600 bg-green-50 border-green-200';
   let barColor = 'bg-green-500';
   let label = 'LOW RISK';
@@ -17,18 +19,18 @@ export const RiskScoreMeter: React.FC<RiskScoreMeterProps> = ({ score, priorityA
     color = 'text-slate-600 bg-slate-50 border-slate-200';
     barColor = 'bg-slate-300';
     label = 'NO RISK FOUND';
-  } else if (score >= 80) {
+  } else if (riskLevel === 'CRITICAL') {
     color = 'text-red-700 bg-red-50 border-red-200';
     barColor = 'bg-red-600';
     label = 'CRITICAL RISK';
-  } else if (score >= 65) {
+  } else if (riskLevel === 'HIGH') {
     color = 'text-orange-700 bg-orange-50 border-orange-200';
     barColor = 'bg-orange-500';
     label = 'HIGH RISK';
-  } else if (score >= 45) {
+  } else if (riskLevel === 'MEDIUM') {
     color = 'text-amber-700 bg-amber-50 border-amber-200';
     barColor = 'bg-amber-500';
-    label = 'MODERATE RISK';
+    label = 'MEDIUM RISK';
   }
 
   if (compact) {
@@ -68,10 +70,12 @@ export const RiskScoreMeter: React.FC<RiskScoreMeterProps> = ({ score, priorityA
         <div className="flex items-center space-x-2">
           {score <= 0 ? (
             <CheckCircle2 className="w-5 h-5 text-slate-500" />
-          ) : score >= 80 ? (
+          ) : riskLevel === 'CRITICAL' ? (
             <AlertTriangle className="w-5 h-5 text-red-600 animate-pulse" />
-          ) : score >= 65 ? (
+          ) : riskLevel === 'HIGH' ? (
             <ShieldAlert className="w-5 h-5 text-orange-600" />
+          ) : riskLevel === 'MEDIUM' ? (
+            <ShieldAlert className="w-5 h-5 text-amber-600" />
           ) : (
             <CheckCircle2 className="w-5 h-5 text-green-600" />
           )}

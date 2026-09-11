@@ -24,6 +24,20 @@ export interface RiskCalculationResult {
   explanation: string[];
 }
 
+/**
+ * Canonical Risk Category Mapping:
+ * 0 - 39.99  = LOW
+ * 40 - 49.99 = MEDIUM
+ * 50 - 74.99 = HIGH
+ * 75 - 100   = CRITICAL
+ */
+export function getRiskLevelFromScore(score: number): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' {
+  if (score >= 75) return 'CRITICAL';
+  if (score >= 50) return 'HIGH';
+  if (score >= 40) return 'MEDIUM';
+  return 'LOW';
+}
+
 export class RoadRiskEngine {
   // Configurable weights totaling 100
   private static WEIGHTS = {
@@ -119,10 +133,7 @@ export class RoadRiskEngine {
     
     const overallScore = Math.min(100, Math.max(1, Math.round(rawTotal)));
 
-    let riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' = 'LOW';
-    if (overallScore >= 80) riskLevel = 'CRITICAL';
-    else if (overallScore >= 65) riskLevel = 'HIGH';
-    else if (overallScore >= 45) riskLevel = 'MEDIUM';
+    const riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' = getRiskLevelFromScore(overallScore);
 
     if (explanations.length === 0) {
       explanations.push('Standard localized road wear requiring scheduled routine maintenance.');

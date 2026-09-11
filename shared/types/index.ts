@@ -28,6 +28,20 @@ export type DamageType =
 export type SeverityLevel = 'low' | 'medium' | 'high' | 'critical';
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
+/**
+ * Canonical Risk Category Mapping:
+ * 0 - 39.99  = LOW
+ * 40 - 49.99 = MEDIUM
+ * 50 - 74.99 = HIGH
+ * 75 - 100   = CRITICAL
+ */
+export function getRiskLevelFromScore(score: number): RiskLevel {
+  if (score >= 75) return 'CRITICAL';
+  if (score >= 50) return 'HIGH';
+  if (score >= 40) return 'MEDIUM';
+  return 'LOW';
+}
+
 export type ComplaintStatus =
   | 'REPORTED'
   | 'AI_ANALYZED'
