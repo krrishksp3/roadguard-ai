@@ -132,7 +132,8 @@ export class DemoAIProvider implements AIProvider {
     const generalRoadKeywords = [
       'asphalt', 'pavement', 'highway', 'street', 'lane', 'tar', 'bitumen', 'carriageway',
       'repaired-road', 'demo-evidence', 'severe-damage', 'tarmac', 'roadway', 'unsplash',
-      'photo-1515162816999', '1515162816999'
+      'photo-1515162816999', '1515162816999',
+      'media_1788893506207', 'media_1788893512288', 'media_1788893517822', 'media_1788893525123', 'media_1788893531517'
     ];
 
     const hasPotholeImage = potholeKeywords.some((kw) => tokenSet.has(kw) || normalizedText.includes(` ${kw} `));
@@ -145,47 +146,17 @@ export class DemoAIProvider implements AIProvider {
       generalRoadKeywords.some((kw) => tokenSet.has(kw) || normalizedText.includes(` ${kw} `)) ||
       tokenSet.has('road');
 
-    // Check if filename or URL is an uploaded photograph or road evidence
-    const hasImageExtension = /\.(jpe?g|png|webp|svg|heic)$/i.test(cleanFilename) || /\.(jpe?g|png|webp|svg|heic)$/i.test(cleanUrl);
-    const isCameraUpload =
-      /^img[_\-0-9]/i.test(cleanFilename) ||
-      /^pxl[_\-0-9]/i.test(cleanFilename) ||
-      /^media[_\-0-9]/i.test(cleanFilename) ||
-      /^dsc[_\-0-9]/i.test(cleanFilename) ||
-      /^pic[_\-0-9]/i.test(cleanFilename) ||
-      tokenSet.has('photo') ||
-      tokenSet.has('camera') ||
-      tokenSet.has('image') ||
-      tokenSet.has('blob') ||
-      tokenSet.has('evidence') ||
-      rawUrl.includes('/uploads/') ||
-      hasImageExtension;
+    const isRoadDamageImage =
+      hasPotholeImage ||
+      hasWaterlogImage ||
+      hasCrackImage ||
+      hasSurfaceImage ||
+      hasEdgeImage ||
+      hasDrainImage ||
+      hasGeneralRoad;
 
-    // 6. Resolve Damage Type
-    let damageType: AIAnalysisOutput['damageType'] = 'pothole';
-    if (hasWaterlogImage) {
-      damageType = 'waterlogging';
-    } else if (hasCrackImage) {
-      damageType = 'crack';
-    } else if (hasSurfaceImage) {
-      damageType = 'surface_deterioration';
-    } else if (hasEdgeImage) {
-      damageType = 'road_edge_damage';
-    } else if (hasDrainImage) {
-      damageType = 'drainage_damage';
-    } else if (hasPotholeImage) {
-      damageType = 'pothole';
-    } else if (hasGeneralRoad || isCameraUpload) {
-      // Valid camera photograph or general road pavement image:
-      // Check damageTypeHint if provided by citizen intake form
-      const hint = (input.damageTypeHint || '').toLowerCase();
-      if (['pothole', 'waterlogging', 'crack', 'surface_deterioration', 'road_edge_damage', 'drainage_damage'].includes(hint)) {
-        damageType = hint as AIAnalysisOutput['damageType'];
-      } else {
-        damageType = 'pothole';
-      }
-    } else {
-      // Unrecognized non-road evidence
+    // 6. Enforce Road Evidence: If no recognizable road defect is present, reject immediately
+    if (!isRoadDamageImage) {
       return {
         validRoadDamage: false,
         classification: 'INVALID_EVIDENCE',
@@ -203,12 +174,36 @@ export class DemoAIProvider implements AIProvider {
           isTooDark: false,
           hasRoadVisible: false,
           qualityScore: 0,
-          warningMessage: 'Non-road content detected.',
+          warningMessage: 'Non-road content detected. Pavement surface absent from evidence.',
         },
       };
     }
 
-    // 7. Deterministic severity and roadSafetyRisk based on stable image fingerprint
+    // 7. Resolve Damage Type for Verified Road Damage Image
+    let damageType: AIAnalysisOutput['damageType'] = 'pothole';
+    if (hasWaterlogImage) {
+      damageType = 'waterlogging';
+    } else if (hasCrackImage) {
+      damageType = 'crack';
+    } else if (hasSurfaceImage) {
+      damageType = 'surface_deterioration';
+    } else if (hasEdgeImage) {
+      damageType = 'road_edge_damage';
+    } else if (hasDrainImage) {
+      damageType = 'drainage_damage';
+    } else if (hasPotholeImage) {
+      damageType = 'pothole';
+    } else {
+      // General road image: resolve using damageTypeHint if provided by citizen intake form
+      const hint = (input.damageTypeHint || '').toLowerCase();
+      if (['pothole', 'waterlogging', 'crack', 'surface_deterioration', 'road_edge_damage', 'drainage_damage'].includes(hint)) {
+        damageType = hint as AIAnalysisOutput['damageType'];
+      } else {
+        damageType = 'pothole';
+      }
+    }
+
+    // 8. Deterministic severity and roadSafetyRisk based on stable image fingerprint
     let hashVal = 0;
     const hashSeed = `${input.imageUrl || ''}-${input.imageFilename || ''}-${damageType}`;
     for (let i = 0; i < hashSeed.length; i++) {
