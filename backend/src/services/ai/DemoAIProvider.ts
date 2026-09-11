@@ -5,7 +5,44 @@ export class DemoAIProvider implements AIProvider {
   name = 'DemoAIProvider (Offline/Hackathon Mode)';
 
   async analyzeRoadDamage(input: DamageAnalysisInput): Promise<AIAnalysisOutput> {
-    const text = (input.description + ' ' + (input.damageTypeHint || '')).toLowerCase();
+    const text = (input.description + ' ' + (input.damageTypeHint || '') + ' ' + (input.imageUrl || '')).toLowerCase();
+
+    // 1. Check for Non-Road / Person / Religious / Irrelevant Subject
+    const nonRoadKeywords = [
+      'radha', 'rani', 'krishna', 'god', 'deity', 'temple', 'mandir', 'pooja', 'idol',
+      'portrait', 'person', 'selfie', 'face', 'human', 'boy', 'girl', 'man', 'woman',
+      'cat', 'dog', 'pet', 'animal', 'bird', 'food', 'dish', 'meal', 'fruit', 'vegetable',
+      'screenshot', 'indoor', 'room', 'bed', 'sofa', 'furniture', 'office', 'laptop', 'phone',
+      'cartoon', 'anime', 'avatar', 'drawing', 'painting', 'sketch', 'invalid', 'non-road', 'nonroad'
+    ];
+
+    const hasNonRoadKeyword = nonRoadKeywords.some((kw) => text.includes(kw));
+    const roadDistressKeywords = [
+      'road', 'pothole', 'crack', 'asphalt', 'pavement', 'highway', 'street', 'lane',
+      'waterlog', 'water', 'drain', 'gutter', 'manhole', 'curb', 'shoulder', 'edge',
+      'tar', 'bitumen', 'surface', 'cavity', 'crater', 'rut', 'culvert', 'chungi'
+    ];
+    const hasRoadKeyword = roadDistressKeywords.some((kw) => text.includes(kw));
+
+    if (hasNonRoadKeyword || (!hasRoadKeyword && !input.damageTypeHint && input.description.trim().length < 20)) {
+      return {
+        damageType: 'other',
+        severity: 'low',
+        confidence: 0.96,
+        visibleDamage: false,
+        roadSafetyRisk: 0,
+        description: 'NO ROAD ISSUE FOUND: Image does not contain a recognizable road or civil infrastructure defect.',
+        recommendedAction: 'No civil action required. Report flagged as non-infrastructure submission.',
+        imageQuality: {
+          isAcceptable: false,
+          isBlurry: false,
+          isTooDark: false,
+          hasRoadVisible: false,
+          qualityScore: 10,
+          warningMessage: 'Non-road content detected. Pavement surface absent from evidence.',
+        },
+      };
+    }
 
     // Damage type heuristic detection
     let damageType: AIAnalysisOutput['damageType'] = 'pothole';

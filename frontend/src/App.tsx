@@ -13,6 +13,7 @@ import { AuthorityDashboard } from './pages/AuthorityDashboard';
 import { PublicMapPage } from './pages/PublicMapPage';
 import { TenderIntelligencePage } from './pages/TenderIntelligencePage';
 import { RoadHealthPage } from './pages/RoadHealthPage';
+import { AdminDashboard } from './pages/AdminDashboard';
 
 export const App: React.FC = () => {
   return (
@@ -29,6 +30,7 @@ export const App: React.FC = () => {
               <Route path="/my-reports" element={<MyReportsPage />} />
               <Route path="/reports/:id" element={<ReportDetailPage />} />
               <Route path="/authority" element={<AuthorityDashboard />} />
+              <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/map" element={<PublicMapPage />} />
               <Route path="/tenders" element={<TenderIntelligencePage />} />
               <Route path="/road-health" element={<RoadHealthPage />} />

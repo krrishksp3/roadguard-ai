@@ -67,6 +67,16 @@ export function resolveImageUrl(url?: string | null): string {
   return `${backendRoot}${cleanPath}`;
 }
 
+export function normalizeReport(r: any): RoadReport {
+  if (!r) return r;
+  return {
+    ...r,
+    imageUrl: resolveImageUrl(r.imageUrl),
+    repairBeforeImageUrl: r.repairBeforeImageUrl ? resolveImageUrl(r.repairBeforeImageUrl) : (r.imageUrl ? resolveImageUrl(r.imageUrl) : undefined),
+    repairAfterImageUrl: r.repairAfterImageUrl ? resolveImageUrl(r.repairAfterImageUrl) : undefined,
+  };
+}
+
 const API_BASE_URL = getBaseApiUrl();
 
 function getAuthHeaders(): HeadersInit {
@@ -80,25 +90,49 @@ function getAuthHeaders(): HeadersInit {
 export const api = {
   // Authentication
   async login(email: string, password: string): Promise<{ token: string; user: User }> {
-    const res = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.message || 'Login failed');
-    return json.data;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || 'Invalid credentials or authentication error');
+      return json.data;
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        throw new Error('Login timed out. Please check your internet connection and try again.');
+      }
+      throw err;
+    }
   },
 
   async register(data: { name: string; email: string; password: string; role?: string }): Promise<{ token: string; user: User }> {
-    const res = await fetch(`${API_BASE_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.message || 'Registration failed');
-    return json.data;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || 'Registration failed');
+      return json.data;
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        throw new Error('Registration timed out. Please check your internet connection and try again.');
+      }
+      throw err;
+    }
   },
 
   async getProfile(): Promise<User> {
@@ -111,23 +145,32 @@ export const api = {
   },
 
   // Reports
-  async getAllReports(params?: { status?: string; severity?: string; search?: string }): Promise<{ data: RoadReport[]; meta: any }> {
+  async getAllReports(params?: {
+    status?: string;
+    severity?: string;
+    departmentId?: string;
+    search?: string;
+    sortBy?: 'newest' | 'risk';
+  }): Promise<{ data: RoadReport[]; meta: any }> {
     const query = new URLSearchParams();
     if (params?.status) query.append('status', params.status);
     if (params?.severity) query.append('severity', params.severity);
+    if (params?.departmentId) query.append('departmentId', params.departmentId);
     if (params?.search) query.append('search', params.search);
+    if (params?.sortBy) query.append('sortBy', params.sortBy);
 
     const res = await fetch(`${API_BASE_URL}/reports?${query.toString()}`);
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Failed to fetch reports');
-    return { data: json.data, meta: json.meta };
+    const normalizedData = (json.data || []).map(normalizeReport);
+    return { data: normalizedData, meta: json.meta };
   },
 
   async getReportById(id: string): Promise<RoadReport> {
     const res = await fetch(`${API_BASE_URL}/reports/${id}`);
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Failed to fetch report');
-    return json.data;
+    return normalizeReport(json.data);
   },
 
   async getMyReports(): Promise<RoadReport[]> {
@@ -136,7 +179,7 @@ export const api = {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Failed to fetch my reports');
-    return json.data;
+    return (json.data || []).map(normalizeReport);
   },
 
   // File Uploads
@@ -152,7 +195,10 @@ export const api = {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Image upload failed');
-    return json.data;
+    return {
+      ...json.data,
+      url: resolveImageUrl(json.data.url),
+    };
   },
 
   async createReport(payload: {
@@ -175,7 +221,7 @@ export const api = {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Failed to submit report');
-    return json.data;
+    return normalizeReport(json.data);
   },
 
   async updateReportStatus(
@@ -190,7 +236,18 @@ export const api = {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Failed to update status');
-    return json.data;
+    return normalizeReport(json.data);
+  },
+
+  async escalateReport(id: string, reason: string): Promise<RoadReport> {
+    const res = await fetch(`${API_BASE_URL}/reports/${id}/escalate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ reason }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Failed to escalate report');
+    return normalizeReport(json.data);
   },
 
   // After-Repair Photo Upload
@@ -206,7 +263,7 @@ export const api = {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Failed to save after-repair photo');
-    return json.data;
+    return normalizeReport(json.data);
   },
 
   // Verification
@@ -233,6 +290,38 @@ export const api = {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Failed to submit decision');
+    return json.data;
+  },
+
+  // District Admin Oversight & Directives
+  async getAdminOverview(): Promise<any> {
+    const res = await fetch(`${API_BASE_URL}/admin/overview`, {
+      headers: getAuthHeaders(),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Failed to fetch admin overview');
+    return {
+      ...json.data,
+      criticalReports: (json.data?.criticalReports || []).map(normalizeReport),
+      overdueReports: (json.data?.overdueReports || []).map(normalizeReport),
+      escalatedReports: (json.data?.escalatedReports || []).map(normalizeReport),
+      contractorIssues: (json.data?.contractorIssues || []).map(normalizeReport),
+    };
+  },
+
+  async adminTakeAction(payload: {
+    reportId: string;
+    actionType: string;
+    notes?: string;
+    targetDepartmentId?: string;
+  }): Promise<any> {
+    const res = await fetch(`${API_BASE_URL}/admin/action`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || 'Failed to execute administrative action');
     return json.data;
   },
 

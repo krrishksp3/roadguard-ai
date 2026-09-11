@@ -13,11 +13,18 @@ export const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
-      navigate('/');
+      const user = await login(email.trim(), password);
+      if (user?.role === 'ADMIN') {
+        navigate('/admin');
+      } else if (user?.role === 'AUTHORITY') {
+        navigate('/authority');
+      } else {
+        navigate('/my-reports');
+      }
     } catch (err: any) {
       setError(err.message || 'Login failed. Please verify credentials.');
     } finally {

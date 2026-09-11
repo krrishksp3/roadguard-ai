@@ -23,6 +23,8 @@ export const AuthorityDashboard: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [severityFilter, setSeverityFilter] = useState<string>('');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('');
+  const [sortBy, setSortBy] = useState<'newest' | 'risk'>('newest');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const loadData = async () => {
@@ -31,7 +33,9 @@ export const AuthorityDashboard: React.FC = () => {
         api.getAllReports({
           status: statusFilter || undefined,
           severity: severityFilter || undefined,
+          departmentId: departmentFilter || undefined,
           search: searchQuery || undefined,
+          sortBy,
         }),
         api.getAnalyticsSummary(),
       ]);
@@ -46,7 +50,7 @@ export const AuthorityDashboard: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [statusFilter, severityFilter, searchQuery]);
+  }, [statusFilter, severityFilter, departmentFilter, searchQuery, sortBy]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -133,6 +137,28 @@ export const AuthorityDashboard: React.FC = () => {
           <h2 className="font-bold text-slate-900 text-base">Risk-Ranked Complaint Worklist</h2>
 
           <div className="flex flex-wrap items-center gap-3">
+            {/* Sort Filter */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-gov-700 bg-white"
+            >
+              <option value="newest">🕒 Newest First (Live Feed)</option>
+              <option value="risk">⚠️ Highest Risk First</option>
+            </select>
+
+            {/* Department Filter */}
+            <select
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              className="px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-gov-700 bg-white"
+            >
+              <option value="">All Divisions (Meerut)</option>
+              <option value="dept-pwd-mrt">UP PWD Meerut</option>
+              <option value="dept-nn-mrt">Nagar Nigam Meerut</option>
+              <option value="dept-nhai-mrt">NHAI Meerut</option>
+            </select>
+
             {/* Search */}
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -181,6 +207,7 @@ export const AuthorityDashboard: React.FC = () => {
               <tr>
                 <th className="py-3 px-3">Complaint ID</th>
                 <th className="py-3 px-3">Distress & Photo</th>
+                <th className="py-3 px-3">Division</th>
                 <th className="py-3 px-3">Road Corridor</th>
                 <th className="py-3 px-3">Severity</th>
                 <th className="py-3 px-3">Dynamic Risk</th>
@@ -202,9 +229,12 @@ export const AuthorityDashboard: React.FC = () => {
                       <img
                         src={report.imageUrl}
                         alt="thumbnail"
-                        className="w-10 h-10 rounded-lg object-cover border border-slate-200 shrink-0"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = '/demo-evidence/pothole-reference.jpg';
+                        }}
+                        className="w-10 h-10 rounded-lg object-cover border border-slate-200 shrink-0 bg-slate-100"
                       />
-                      <div className="max-w-[200px]">
+                      <div className="max-w-[180px]">
                         <span className="font-bold text-slate-900 block capitalize truncate">
                           {report.damageType.replace(/_/g, ' ')}
                         </span>
@@ -213,6 +243,11 @@ export const AuthorityDashboard: React.FC = () => {
                         </span>
                       </div>
                     </div>
+                  </td>
+                  <td className="py-3 px-3">
+                    <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-800 font-semibold text-[10px] block truncate max-w-[120px]">
+                      {report.department?.code || report.department?.name || 'PWD Meerut'}
+                    </span>
                   </td>
                   <td className="py-3 px-3 max-w-[160px] truncate text-slate-800">
                     {report.address || 'Meerut Road Network'}

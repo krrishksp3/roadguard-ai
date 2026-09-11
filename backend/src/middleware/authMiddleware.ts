@@ -33,6 +33,25 @@ export const authenticateJwt = (req: AuthenticatedRequest, res: Response, next: 
   }
 };
 
+export const optionalAuthenticateJwt = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next();
+  }
+
+  const token = authHeader.split(' ')[1];
+  const secret = process.env.JWT_SECRET || 'roadguard-secret';
+
+  try {
+    const decoded = jwt.verify(token, secret) as AuthUserPayload;
+    req.user = decoded;
+  } catch (error) {
+    // If token is invalid or expired, continue as unauthenticated guest rather than rejecting report creation
+  }
+  next();
+};
+
 export const requireRoles = (roles: string[]) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {

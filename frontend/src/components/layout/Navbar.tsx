@@ -6,7 +6,7 @@ import { OfflineIndicator } from '../pwa/OfflineIndicator';
 import { PwaInstallPrompt } from '../pwa/PwaInstallPrompt';
 
 export const Navbar: React.FC = () => {
-  const { user, isAuthenticated, isAuthority, logout } = useAuth();
+  const { user, isAuthenticated, isAuthority, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -68,6 +68,18 @@ export const Navbar: React.FC = () => {
               <Activity className="w-4 h-4" />
               <span>Road Health</span>
             </Link>
+
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                  isActive('/admin') ? 'bg-purple-700 text-white font-semibold' : 'text-purple-300 hover:text-purple-200 hover:bg-slate-800'
+                }`}
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                <span>Admin Console</span>
+              </Link>
+            )}
 
             {isAuthority && (
               <Link

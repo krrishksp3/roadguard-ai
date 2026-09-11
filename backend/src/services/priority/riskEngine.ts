@@ -36,6 +36,26 @@ export class RoadRiskEngine {
   };
 
   public static calculate(input: RiskCalculationInput): RiskCalculationResult {
+    // Non-road or non-infrastructure images: strictly NO RISK / NOT APPLICABLE
+    if (input.roadSafetyRisk === 0 || input.severity === 'none') {
+      return {
+        overallScore: 0,
+        riskLevel: 'LOW',
+        breakdown: {
+          severityScore: 0,
+          safetyRiskScore: 0,
+          densityScore: 0,
+          roadImportanceScore: 0,
+          recurrenceScore: 0,
+          slaUrgencyScore: 0,
+        },
+        explanation: [
+          'NO ROAD ISSUE FOUND: Image does not contain a recognizable road or infrastructure defect.',
+          'Road Risk Score: 0/100 (Not Applicable). No civic repair priority assigned.',
+        ],
+      };
+    }
+
     const explanations: string[] = [];
 
     // 1. Severity Score (0 - 100 scaled to WEIGHTS.SEVERITY)

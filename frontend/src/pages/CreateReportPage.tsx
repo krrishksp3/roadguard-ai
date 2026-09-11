@@ -135,25 +135,42 @@ export const CreateReportPage: React.FC = () => {
     fetchJurisdiction(location[0], location[1]);
   }, [location, fetchJurisdiction]);
 
-  // Handle GPS location request
+  // Handle GPS location request with high-accuracy + fast fallback
   const requestGpsLocation = () => {
     if (!navigator.geolocation) {
       setGpsStatus('denied');
       return;
     }
 
+    if (gpsStatus === 'locating') return;
+
     setGpsStatus('locating');
+
+    // First try high accuracy with 5-second timeout
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
         setLocation(coords);
-        setGpsAccuracy(Math.round(pos.coords.accuracy || 15));
+        setGpsAccuracy(Math.round(pos.coords.accuracy || 10));
         setGpsStatus('success');
       },
-      () => {
-        setGpsStatus('denied');
+      (err) => {
+        console.warn('High accuracy GPS timed out or failed, falling back to standard accuracy:', err);
+        // Fallback to coarse / cached location
+        navigator.geolocation.getCurrentPosition(
+          (fallbackPos) => {
+            const coords: [number, number] = [fallbackPos.coords.latitude, fallbackPos.coords.longitude];
+            setLocation(coords);
+            setGpsAccuracy(Math.round(fallbackPos.coords.accuracy || 50));
+            setGpsStatus('success');
+          },
+          () => {
+            setGpsStatus('denied');
+          },
+          { timeout: 5000, enableHighAccuracy: false, maximumAge: 60000 }
+        );
       },
-      { timeout: 8000, enableHighAccuracy: true }
+      { timeout: 5000, enableHighAccuracy: true, maximumAge: 30000 }
     );
   };
 
@@ -302,9 +319,18 @@ export const CreateReportPage: React.FC = () => {
       // Navigate directly to live complaint lifecycle view
       navigate(`/reports/${newReport.id}`);
     } catch (err: any) {
-      // If network failed during submission, save offline automatically so work is not lost!
-      console.warn('Network submission failed, falling back to offline draft:', err);
-      await handleSaveOffline();
+      const isNetworkError =
+        (typeof navigator !== 'undefined' && !navigator.onLine) ||
+        (err.message && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')));
+
+      if (isNetworkError) {
+        console.warn('Network submission failed, falling back to offline draft:', err);
+        await handleSaveOffline();
+      } else {
+        setError(err.message || 'Failed to submit road report. Please check details and try again.');
+        setSubmitting(false);
+        setSubmitStep('');
+      }
     }
   };
 

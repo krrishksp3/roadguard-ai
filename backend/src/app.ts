@@ -11,6 +11,7 @@ import verificationRoutes from './routes/verificationRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import departmentRoutes from './routes/departmentRoutes';
+import adminRoutes from './routes/adminRoutes';
 import { errorHandler } from './middleware/errorHandler';
 import { aiService } from './services/ai/AIService';
 
@@ -86,6 +87,7 @@ app.get('/api/docs', (req, res) => {
         'GET /api/reports/my-reports',
         'GET /api/reports/:id',
         'PATCH /api/reports/:id/status',
+        'POST /api/reports/:id/escalate',
       ],
       roadHealth: [
         'GET /api/road-health',
@@ -94,6 +96,7 @@ app.get('/api/docs', (req, res) => {
       ],
       tenders: ['GET /api/tenders', 'GET /api/tenders/:id'],
       verification: ['POST /api/verification/run', 'POST /api/verification/:reportId/decision'],
+      admin: ['GET /api/admin/overview', 'POST /api/admin/action'],
       analytics: ['GET /api/analytics/summary'],
       notifications: ['GET /api/notifications', 'PATCH /api/notifications/:id/read'],
       departments: ['GET /api/departments'],
@@ -108,6 +111,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/road-health', roadHealthRoutes);
 app.use('/api/tenders', tenderRoutes);
 app.use('/api/verification', verificationRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/departments', departmentRoutes);

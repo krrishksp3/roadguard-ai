@@ -6,6 +6,60 @@ import { registerSchema, loginSchema } from '../validators/schemas';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 
 export class AuthController {
+  // Idempotently ensure default demo accounts exist
+  public static async ensureDefaultAccounts(): Promise<void> {
+    try {
+      const citizen = await prisma.user.findUnique({ where: { email: 'citizen@roadguard.demo' } });
+      if (!citizen) {
+        const hash = await bcrypt.hash('citizen123', 10);
+        await prisma.user.create({
+          data: {
+            id: 'user-citizen-01',
+            email: 'citizen@roadguard.demo',
+            passwordHash: hash,
+            name: 'Arun Kumar (Citizen)',
+            role: 'CITIZEN',
+            phone: '+91 98765 43210',
+          },
+        });
+      }
+
+      const authority = await prisma.user.findUnique({ where: { email: 'authority@roadguard.demo' } });
+      if (!authority) {
+        const pwdDept = await prisma.department.findFirst({ where: { code: 'PWD_MRT' } });
+        const hash = await bcrypt.hash('authority123', 10);
+        await prisma.user.create({
+          data: {
+            id: 'user-authority-01',
+            email: 'authority@roadguard.demo',
+            passwordHash: hash,
+            name: 'Er. Rajesh Bansal (Executive Engineer, PWD)',
+            role: 'AUTHORITY',
+            departmentId: pwdDept?.id,
+            phone: '+91 94120 12345',
+          },
+        });
+      }
+
+      const admin = await prisma.user.findUnique({ where: { email: 'admin@roadguard.demo' } });
+      if (!admin) {
+        const hash = await bcrypt.hash('admin123', 10);
+        await prisma.user.create({
+          data: {
+            id: 'user-admin-01',
+            email: 'admin@roadguard.demo',
+            passwordHash: hash,
+            name: 'System Administrator (RoadGuard Admin)',
+            role: 'ADMIN',
+            phone: '+91 94100 00000',
+          },
+        });
+      }
+    } catch (err) {
+      console.warn('[AuthController] Notice during ensureDefaultAccounts:', err);
+    }
+  }
+
   public static async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const data = registerSchema.parse(req.body);
@@ -22,13 +76,13 @@ export class AuthController {
       const salt = await bcrypt.genSalt(10);
       const passwordHash = await bcrypt.hash(data.password, salt);
 
+      // Public registration is restricted to CITIZEN role
       const user = await prisma.user.create({
         data: {
           name: data.name,
           email: data.email.toLowerCase(),
           passwordHash,
-          role: data.role,
-          departmentId: data.departmentId,
+          role: 'CITIZEN',
           phone: data.phone,
         },
         select: {
@@ -50,7 +104,7 @@ export class AuthController {
 
       res.status(201).json({
         success: true,
-        message: 'User registered successfully',
+        message: 'Citizen account registered successfully',
         data: { user, token },
       });
     } catch (error) {
@@ -62,10 +116,19 @@ export class AuthController {
     try {
       const data = loginSchema.parse(req.body);
 
-      const user = await prisma.user.findUnique({
+      let user = await prisma.user.findUnique({
         where: { email: data.email.toLowerCase() },
         include: { department: true },
       });
+
+      // If demo user is missing on a fresh database, provision idempotently
+      if (!user && (data.email === 'citizen@roadguard.demo' || data.email === 'authority@roadguard.demo' || data.email === 'admin@roadguard.demo')) {
+        await AuthController.ensureDefaultAccounts();
+        user = await prisma.user.findUnique({
+          where: { email: data.email.toLowerCase() },
+          include: { department: true },
+        });
+      }
 
       if (!user) {
         res.status(401).json({ success: false, message: 'Invalid email or password' });
@@ -97,6 +160,7 @@ export class AuthController {
             role: user.role,
             departmentId: user.departmentId,
             departmentName: user.department?.name,
+            jurisdiction: user.department?.jurisdiction,
             createdAt: user.createdAt,
           },
         },

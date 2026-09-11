@@ -17,6 +17,9 @@ export const ReportDetailPage: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [statusUpdateLoading, setStatusUpdateLoading] = useState<boolean>(false);
   const [isImageZoomed, setIsImageZoomed] = useState<boolean>(false);
+  const [showEscalateModal, setShowEscalateModal] = useState<boolean>(false);
+  const [escalateReason, setEscalateReason] = useState<string>('');
+  const [escalating, setEscalating] = useState<boolean>(false);
 
   const fetchReport = async () => {
     if (!id) return;
@@ -44,6 +47,22 @@ export const ReportDetailPage: React.FC = () => {
       alert(err.message || 'Failed to update status');
     } finally {
       setStatusUpdateLoading(false);
+    }
+  };
+
+  const handleEscalate = async () => {
+    if (!id || !escalateReason.trim()) return;
+    setEscalating(true);
+    try {
+      await api.escalateReport(id, escalateReason);
+      setShowEscalateModal(false);
+      setEscalateReason('');
+      await fetchReport();
+      alert('Incident report successfully escalated to District Administration.');
+    } catch (err: any) {
+      alert(err.message || 'Failed to escalate report');
+    } finally {
+      setEscalating(false);
     }
   };
 
@@ -130,7 +149,14 @@ export const ReportDetailPage: React.FC = () => {
           {/* Incident Image Card */}
           <div className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
             <div className="relative aspect-video max-h-80 bg-slate-900 group">
-              <img src={report.imageUrl} alt={report.damageType} className="w-full h-full object-cover" />
+              <img
+                src={report.imageUrl}
+                alt={report.damageType}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800&auto=format&fit=crop&q=80';
+                }}
+              />
               <div className="absolute top-3 left-3 flex items-center space-x-2">
                 <div className="bg-slate-900/80 backdrop-blur-sm text-white px-3 py-1 rounded-lg text-xs font-mono">
                   Lat: {report.latitude.toFixed(5)}, Lng: {report.longitude.toFixed(5)}
@@ -342,11 +368,67 @@ export const ReportDetailPage: React.FC = () => {
                 >
                   Mark Resolved
                 </button>
+                <button
+                  onClick={() => setShowEscalateModal(true)}
+                  disabled={statusUpdateLoading || escalating}
+                  className="col-span-2 px-3 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 shadow-sm disabled:opacity-50"
+                >
+                  <ShieldAlert className="w-3.5 h-3.5 text-purple-200" />
+                  <span>Escalate to District Administration</span>
+                </button>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Escalate to District Administration Modal */}
+      {showEscalateModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center space-x-2">
+                <ShieldAlert className="w-5 h-5 text-purple-700" />
+                <h3 className="font-bold text-slate-900 text-base">Escalate to District Admin</h3>
+              </div>
+              <button
+                onClick={() => setShowEscalateModal(false)}
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Flag this incident for urgent District Collector / Chief Engineer intervention (e.g. contractor non-responsiveness, severe hazardous condition, multi-department jurisdiction dispute).
+            </p>
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">Escalation Reason / Context</label>
+              <textarea
+                value={escalateReason}
+                onChange={(e) => setEscalateReason(e.target.value)}
+                placeholder="Describe reason for escalation (e.g. Contractor unreachable past 48 hours, high risk to school corridor)..."
+                rows={3}
+                className="w-full text-xs p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-700 focus:outline-none"
+              />
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <button
+                onClick={() => setShowEscalateModal(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEscalate}
+                disabled={escalating || !escalateReason.trim()}
+                className="px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-xl shadow-sm transition disabled:opacity-50"
+              >
+                {escalating ? 'Submitting Escalation...' : 'Confirm Escalation'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Lightbox Zoom Modal */}
       {isImageZoomed && (

@@ -6,8 +6,8 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
-  login: (email: string, pass: string) => Promise<void>;
-  register: (name: string, email: string, pass: string, role?: string) => Promise<void>;
+  login: (email: string, pass: string) => Promise<User>;
+  register: (name: string, email: string, pass: string, role?: string) => Promise<User>;
   logout: () => void;
   isAuthenticated: boolean;
   isAuthority: boolean;
@@ -39,18 +39,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadUser();
   }, [token]);
 
-  const login = async (email: string, pass: string) => {
+  const login = async (email: string, pass: string): Promise<User> => {
     const data = await api.login(email, pass);
     localStorage.setItem('roadguard_token', data.token);
     setToken(data.token);
     setUser(data.user);
+    return data.user;
   };
 
-  const register = async (name: string, email: string, pass: string, role?: string) => {
+  const register = async (name: string, email: string, pass: string, role?: string): Promise<User> => {
     const data = await api.register({ name, email, password: pass, role });
     localStorage.setItem('roadguard_token', data.token);
     setToken(data.token);
     setUser(data.user);
+    return data.user;
   };
 
   const logout = () => {

@@ -16,7 +16,13 @@ export class ReportController {
   public static async createReport(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const data = reportCreateSchema.parse(req.body);
-      const userId = req.user?.id || 'demo-citizen-id';
+      
+      // Resolve valid user ID (foreign key integrity)
+      let userId = req.user?.id;
+      if (!userId) {
+        const primaryCitizen = await prisma.user.findFirst({ where: { role: 'CITIZEN' } });
+        userId = primaryCitizen?.id || 'user-citizen-01';
+      }
 
       // Check idempotency if clientReportId provided
       if (data.clientReportId) {
@@ -75,9 +81,11 @@ export class ReportController {
       const slaDueAt = SLAService.calculateDueDate(now, aiResult.severity);
 
       // 5. Dynamic Road Risk Score (0 - 100)
+      const isNonRoad = (aiResult.damageType === 'other' && !aiResult.visibleDamage) || aiResult.roadSafetyRisk === 0;
+
       const priorityResult = RoadRiskEngine.calculate({
-        severity: aiResult.severity,
-        roadSafetyRisk: aiResult.roadSafetyRisk,
+        severity: isNonRoad ? 'none' : aiResult.severity,
+        roadSafetyRisk: isNonRoad ? 0 : aiResult.roadSafetyRisk,
         aiConfidence: aiResult.confidence,
         nearbyReportsCount: duplicateCheck.nearbyReportsCount,
         roadImportance: 'MAJOR_DISTRICT',
@@ -86,6 +94,9 @@ export class ReportController {
         hoursSinceReported: 0,
         slaTargetHours,
       });
+
+      const finalStatus = isNonRoad ? 'REPORTED' : 'ASSIGNED';
+      const finalRiskScore = isNonRoad ? 0 : priorityResult.overallScore;
 
       // 6. Persist Report & Sub-models
       const report = await prisma.roadReport.create({
@@ -104,24 +115,24 @@ export class ReportController {
           address: data.address || `${jurisdiction.roadSegmentName || 'Meerut Road Network'}, Meerut, UP`,
           description: data.description,
           damageType: aiResult.damageType,
-          severity: aiResult.severity,
-          status: 'ASSIGNED',
-          roadSegmentId: jurisdiction.roadSegmentId,
-          departmentId: jurisdiction.departmentId,
-          riskScore: priorityResult.overallScore,
+          severity: isNonRoad ? 'low' : aiResult.severity,
+          status: finalStatus,
+          roadSegmentId: isNonRoad ? null : jurisdiction.roadSegmentId,
+          departmentId: isNonRoad ? null : jurisdiction.departmentId,
+          riskScore: finalRiskScore,
           isDuplicate: duplicateCheck.isDuplicate,
           duplicateOfId: duplicateCheck.duplicateOfId,
-          isRecurring: jurisdiction.isRecurringHotspot,
+          isRecurring: isNonRoad ? false : jurisdiction.isRecurringHotspot,
           slaTargetHours,
           slaDueAt,
           isOverdue: false,
           aiAnalysis: {
             create: {
               damageType: aiResult.damageType,
-              severity: aiResult.severity,
+              severity: isNonRoad ? 'low' : aiResult.severity,
               confidence: aiResult.confidence,
               visibleDamage: aiResult.visibleDamage,
-              roadSafetyRisk: aiResult.roadSafetyRisk,
+              roadSafetyRisk: isNonRoad ? 0 : aiResult.roadSafetyRisk,
               description: aiResult.description,
               recommendedAction: aiResult.recommendedAction,
               isAcceptableQuality: aiResult.imageQuality.isAcceptable,
@@ -136,7 +147,7 @@ export class ReportController {
           },
           priorityAssessment: {
             create: {
-              overallScore: priorityResult.overallScore,
+              overallScore: finalRiskScore,
               riskLevel: priorityResult.riskLevel,
               severityScore: priorityResult.breakdown.severityScore,
               safetyRiskScore: priorityResult.breakdown.safetyRiskScore,
@@ -148,28 +159,41 @@ export class ReportController {
             },
           },
           timeline: {
-            create: [
-              {
-                status: 'REPORTED',
-                label: 'Complaint Registered',
-                description: 'Citizen submitted road distress report with geolocated evidence.',
-              },
-              {
-                status: 'AI_ANALYZED',
-                label: 'AI Computer Vision Analysis',
-                description: `Identified ${aiResult.damageType} with ${Math.round(aiResult.confidence * 100)}% confidence. Severity rated ${aiResult.severity.toUpperCase()}.`,
-              },
-              {
-                status: 'PRIORITY_CALCULATED',
-                label: 'Road Risk Score Computed',
-                description: `Dynamic Risk Score evaluated at ${priorityResult.overallScore}/100 (${priorityResult.riskLevel}).`,
-              },
-              {
-                status: 'ASSIGNED',
-                label: 'Assigned to Responsible Department',
-                description: `Automated dispatch to ${jurisdiction.departmentName || 'PWD Meerut'}.`,
-              },
-            ],
+            create: isNonRoad
+              ? [
+                  {
+                    status: 'REPORTED',
+                    label: 'Complaint Registered',
+                    description: 'Citizen submitted image for inspection.',
+                  },
+                  {
+                    status: 'AI_ANALYZED',
+                    label: 'AI Verification Check',
+                    description: 'NO ROAD ISSUE FOUND: Uploaded evidence does not contain a recognizable road or infrastructure hazard (Risk: 0/100).',
+                  },
+                ]
+              : [
+                  {
+                    status: 'REPORTED',
+                    label: 'Complaint Registered',
+                    description: 'Citizen submitted road distress report with geolocated evidence.',
+                  },
+                  {
+                    status: 'AI_ANALYZED',
+                    label: 'AI Computer Vision Analysis',
+                    description: `Identified ${aiResult.damageType} with ${Math.round(aiResult.confidence * 100)}% confidence. Severity rated ${aiResult.severity.toUpperCase()}.`,
+                  },
+                  {
+                    status: 'PRIORITY_CALCULATED',
+                    label: 'Road Risk Score Computed',
+                    description: `Dynamic Risk Score evaluated at ${priorityResult.overallScore}/100 (${priorityResult.riskLevel}).`,
+                  },
+                  {
+                    status: 'ASSIGNED',
+                    label: 'Assigned to Responsible Department',
+                    description: `Automated dispatch to ${jurisdiction.departmentName || 'PWD Meerut'}.`,
+                  },
+                ],
           },
         },
         include: {
@@ -207,7 +231,7 @@ export class ReportController {
 
   public static async getAllReports(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { status, severity, departmentId, isOverdue, search, page = '1', limit = '50' } = req.query;
+      const { status, severity, departmentId, isOverdue, search, sortBy = 'newest', page = '1', limit = '50' } = req.query;
 
       const pageNum = parseInt(page as string, 10) || 1;
       const take = parseInt(limit as string, 10) || 50;
@@ -226,6 +250,10 @@ export class ReportController {
         ];
       }
 
+      const orderBy: any = sortBy === 'risk'
+        ? [{ riskScore: 'desc' }, { createdAt: 'desc' }]
+        : [{ createdAt: 'desc' }, { riskScore: 'desc' }];
+
       const [reports, total] = await Promise.all([
         prisma.roadReport.findMany({
           where,
@@ -236,7 +264,7 @@ export class ReportController {
             roadSegment: { include: { tender: true } },
             verificationResult: true,
           },
-          orderBy: [{ riskScore: 'desc' }, { createdAt: 'desc' }],
+          orderBy,
           skip,
           take,
         }),
@@ -478,6 +506,65 @@ export class ReportController {
       res.status(200).json({
         success: true,
         message: 'After-repair photo saved successfully against report',
+        data: updatedReport,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  public static async escalateReport(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+
+      const report = await prisma.roadReport.findUnique({ where: { id } });
+      if (!report) {
+        res.status(404).json({ success: false, message: 'Report not found' });
+        return;
+      }
+
+      await prisma.statusTimelineEvent.create({
+        data: {
+          reportId: id,
+          status: report.status,
+          label: 'Escalated to District Administration',
+          description: reason
+            ? `Authority Officer escalated this case for administrative intervention. Note: ${reason}`
+            : 'Authority Officer escalated this case for administrative intervention and resource allocation.',
+          actorRole: req.user?.role || 'AUTHORITY',
+          actorName: req.user?.name || 'Authority Officer',
+          notes: reason,
+        },
+      });
+
+      // Notify system administrators
+      const admins = await prisma.user.findMany({ where: { role: 'ADMIN' } });
+      for (const admin of admins) {
+        await NotificationService.notify(
+          admin.id,
+          'Authority Case Escalation',
+          `Case ${id} on ${report.address || 'corridor'} was escalated by ${req.user?.name || 'Authority'}: ${reason || 'Immediate action requested.'}`,
+          id,
+          'SLA_ALERT'
+        );
+      }
+
+      const updatedReport = await prisma.roadReport.findUnique({
+        where: { id },
+        include: {
+          aiAnalysis: true,
+          priorityAssessment: true,
+          timeline: { orderBy: { timestamp: 'asc' } },
+          department: true,
+          roadSegment: true,
+          verificationResult: true,
+        },
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Report escalated to District Administration successfully',
         data: updatedReport,
       });
     } catch (error) {
