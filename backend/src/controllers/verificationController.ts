@@ -41,6 +41,14 @@ export class VerificationController {
         return;
       }
 
+      if (report.status === 'CANCELLED') {
+        res.status(400).json({
+          success: false,
+          message: 'Cannot perform repair actions or decisions on a cancelled report.',
+        });
+        return;
+      }
+
       const isApproved = data.decision === 'APPROVED';
 
       // If approving, after-repair evidence is required
@@ -48,6 +56,15 @@ export class VerificationController {
         res.status(400).json({
           success: false,
           message: 'Cannot formally close complaint: after-repair evidence photo has not been uploaded yet.',
+        });
+        return;
+      }
+
+      // If approving but AI verification flagged evidence mismatch
+      if (isApproved && report.verificationResult?.recommendation === 'NEEDS_REINSPECTION') {
+        res.status(400).json({
+          success: false,
+          message: 'Formal closure blocked: AI Repair Verification flagged evidence mismatch (IMAGE DO NOT MATCH / NEEDS_REINSPECTION). Reinspection is required before sign-off.',
         });
         return;
       }

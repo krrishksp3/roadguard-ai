@@ -24,6 +24,8 @@ export const StatusBadge: React.FC<{ status: ComplaintStatus | string }> = ({ st
         return 'bg-green-100 text-green-800 border-green-300 font-semibold';
       case 'NEEDS_REINSPECTION':
         return 'bg-rose-100 text-rose-800 border-rose-300 font-semibold';
+      case 'CANCELLED':
+        return 'bg-rose-100 text-rose-800 border-rose-300 font-bold';
       default:
         return 'bg-slate-100 text-slate-700 border-slate-200';
     }

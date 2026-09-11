@@ -25,6 +25,9 @@ export const AIAnalysisOutputSchema = z.object({
     qualityScore: z.number().min(0).max(100),
     warningMessage: z.string().optional(),
   }),
+  validRoadDamage: z.boolean().optional(),
+  classification: z.enum(['VALID_ROAD_DAMAGE', 'INVALID_EVIDENCE']).optional(),
+  cancellationReason: z.string().optional(),
 });
 
 export type AIAnalysisOutput = z.infer<typeof AIAnalysisOutputSchema>;

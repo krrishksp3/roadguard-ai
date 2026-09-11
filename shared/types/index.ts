@@ -39,7 +39,8 @@ export type ComplaintStatus =
   | 'REPAIR_COMPLETED'
   | 'AI_VERIFIED'
   | 'RESOLVED'
-  | 'NEEDS_REINSPECTION';
+  | 'NEEDS_REINSPECTION'
+  | 'CANCELLED';
 
 export type SyncStatus = 'PENDING_SYNC' | 'SYNCING' | 'SYNCED' | 'FAILED';
 

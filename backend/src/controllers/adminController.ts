@@ -10,7 +10,7 @@ export class AdminController {
     try {
       // 1. Fetch critical reports (riskScore >= 80)
       const criticalReports = await prisma.roadReport.findMany({
-        where: { riskScore: { gte: 80 }, status: { not: 'RESOLVED' } },
+        where: { riskScore: { gte: 80 }, status: { notIn: ['RESOLVED', 'CANCELLED'] } },
         include: {
           department: true,
           roadSegment: { include: { tender: true } },
@@ -22,7 +22,7 @@ export class AdminController {
 
       // 2. Fetch overdue SLA reports
       const allActiveReports = await prisma.roadReport.findMany({
-        where: { status: { not: 'RESOLVED' } },
+        where: { status: { notIn: ['RESOLVED', 'CANCELLED'] } },
         include: {
           department: true,
           roadSegment: { include: { tender: true } },
@@ -45,7 +45,7 @@ export class AdminController {
       const escalatedIds = Array.from(new Set(escalatedTimelineEvents.map((e) => e.reportId)));
 
       const escalatedReports = await prisma.roadReport.findMany({
-        where: { id: { in: escalatedIds } },
+        where: { id: { in: escalatedIds }, status: { not: 'CANCELLED' } },
         include: {
           department: true,
           roadSegment: { include: { tender: true } },
@@ -56,6 +56,7 @@ export class AdminController {
       // 4. Fetch contractor / recurring hotspot issues
       const contractorIssues = await prisma.roadReport.findMany({
         where: {
+          status: { not: 'CANCELLED' },
           OR: [{ isRecurring: true }, { status: 'NEEDS_REINSPECTION' }],
         },
         include: {
@@ -68,7 +69,7 @@ export class AdminController {
 
       // 5. Overall statistics
       const [totalCount, resolvedCount, departmentStats] = await Promise.all([
-        prisma.roadReport.count(),
+        prisma.roadReport.count({ where: { status: { not: 'CANCELLED' } } }),
         prisma.roadReport.count({ where: { status: 'RESOLVED' } }),
         prisma.department.findMany({
           include: {

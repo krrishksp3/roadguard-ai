@@ -142,6 +142,26 @@ export const ReportDetailPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Cancelled Report Banner */}
+      {report.status === 'CANCELLED' && (
+        <div className="bg-rose-50 border-2 border-rose-200 rounded-2xl p-6 text-rose-950 space-y-3 shadow-sm">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-100 border border-rose-300 flex items-center justify-center text-rose-700 shrink-0">
+              <ShieldAlert className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-rose-900">REPORT CANCELLED — INVALID ROAD-DAMAGE EVIDENCE</h2>
+              <p className="text-xs text-rose-700">No supported road damage was detected in the uploaded photograph. Workflow stopped at intake.</p>
+            </div>
+          </div>
+          <div className="bg-white/80 rounded-xl p-3 border border-rose-200 text-xs space-y-1 text-slate-700">
+            <p><span className="font-semibold text-rose-900">Supported evidence includes:</span> Pothole • Water Logging • Surface Cracking • Edge Dropping • Drain / Manhole Damage</p>
+            <p><span className="font-semibold text-rose-900">Forwarded to Authority:</span> <span className="font-bold text-rose-800">NO</span></p>
+            <p><span className="font-semibold text-rose-900">Risk Assessment:</span> <span className="font-bold text-slate-700">NO RISK FOUND (N/A)</span></p>
+          </div>
+        </div>
+      )}
+
       {/* Main Grid: Left = Visuals & Timeline, Right = Intelligence & Tender */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols */}
@@ -213,15 +233,17 @@ export const ReportDetailPage: React.FC = () => {
           {/* E-Commerce Delivery-Style Action Timeline */}
           <ComplaintTimeline timeline={report.timeline} currentStatus={report.status} />
 
-          {/* Before / After AI Verification Module */}
-          <BeforeAfterComparison
-            reportId={report.id}
-            beforeImageUrl={report.imageUrl}
-            afterImageUrl={report.repairAfterImageUrl || undefined}
-            verification={report.verificationResult || undefined}
-            isAuthority={isAuthority}
-            onVerificationComplete={fetchReport}
-          />
+          {/* Before / After AI Verification Module — only for valid road complaints */}
+          {report.status !== 'CANCELLED' && (
+            <BeforeAfterComparison
+              reportId={report.id}
+              beforeImageUrl={report.imageUrl}
+              afterImageUrl={report.repairAfterImageUrl || undefined}
+              verification={report.verificationResult || undefined}
+              isAuthority={isAuthority}
+              onVerificationComplete={fetchReport}
+            />
+          )}
         </div>
 
         {/* Right 1 Col: Intelligence, Tender & Authority Action */}
@@ -334,7 +356,7 @@ export const ReportDetailPage: React.FC = () => {
           )}
 
           {/* Authority Quick Actions Bar */}
-          {isAuthority && (
+          {isAuthority && report.status !== 'CANCELLED' && (
             <div className="bg-amber-50 rounded-2xl p-4 border border-amber-200 space-y-2.5">
               <span className="text-xs font-bold uppercase tracking-wider text-amber-900 block">
                 Authority Administrative Action

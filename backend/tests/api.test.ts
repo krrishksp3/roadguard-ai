@@ -194,7 +194,7 @@ describe('RoadGuard API Endpoints', () => {
       expect(actRes.body.success).toBe(true);
     });
 
-    it('Non-road image ("Radha Rani" test) yields NO ROAD ISSUE FOUND and 0 risk', async () => {
+    it('Non-road image with description "pothole" yields CANCELLED, NO RISK FOUND, and is hidden from Authority and Admin', async () => {
       const nonRoadRes = await request(app)
         .post('/api/reports')
         .set('Authorization', `Bearer ${citizenToken}`)
@@ -202,18 +202,84 @@ describe('RoadGuard API Endpoints', () => {
           latitude: 28.9800,
           longitude: 77.7000,
           address: 'Civil Lines, Meerut',
-          description: 'Personal portrait submitted - Radha Rani photo',
-          imageUrl: '/uploads/radha_rani_portrait.jpg'
+          description: 'pothole',
+          imageFilename: 'student_id_card.png',
+          imageUrl: '/uploads/student_id_card.png',
         });
 
       expect(nonRoadRes.status).toBe(201);
-      expect(nonRoadRes.body.data.damageType).toBe('other');
+      expect(nonRoadRes.body.validRoadDamage).toBe(false);
+      expect(nonRoadRes.body.status).toBe('CANCELLED');
       expect(nonRoadRes.body.data.riskScore).toBe(0);
-      expect(nonRoadRes.body.data.severity.toLowerCase()).toBe('low');
-      expect(nonRoadRes.body.data.aiAnalysis?.description).toContain('NO ROAD ISSUE FOUND');
+      expect(nonRoadRes.body.data.status).toBe('CANCELLED');
+
+      const cancelledId = nonRoadRes.body.data.id;
+
+      // Authority worklist must NOT include cancelled report
+      const authList = await request(app)
+        .get('/api/reports')
+        .set('Authorization', `Bearer ${authorityToken}`);
+      expect(authList.status).toBe(200);
+      const inAuthList = authList.body.data.some((r: any) => r.id === cancelledId);
+      expect(inAuthList).toBe(false);
+
+      // Admin Overview must NOT include cancelled report
+      const adminOverview = await request(app)
+        .get('/api/admin/overview')
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(adminOverview.status).toBe(200);
+      const inCritical = adminOverview.body.data.criticalReports.some((r: any) => r.id === cancelledId);
+      const inOverdue = adminOverview.body.data.overdueReports.some((r: any) => r.id === cancelledId);
+      expect(inCritical).toBe(false);
+      expect(inOverdue).toBe(false);
+
+      // Citizen CAN see it in their own complaints
+      const citizenReports = await request(app)
+        .get('/api/reports/my')
+        .set('Authorization', `Bearer ${citizenToken}`);
+      expect(citizenReports.status).toBe(200);
+      const inCitizenList = citizenReports.body.data.some((r: any) => r.id === cancelledId);
+      expect(inCitizenList).toBe(true);
     });
 
-    it('Approve & Formally Close Complaint persists status and timeline', async () => {
+    it('Unrelated After-Repair image produces NEEDS_REINSPECTION and blocks formal closure', async () => {
+      // 1. Run verification with unrelated after image
+      const verifyRes = await request(app)
+        .post('/api/verification/run')
+        .set('Authorization', `Bearer ${authorityToken}`)
+        .send({
+          reportId,
+          afterImageUrl: '/uploads/id_card_unrelated.png',
+        });
+      expect(verifyRes.status).toBe(200);
+      expect(verifyRes.body.data.recommendation).toBe('NEEDS_REINSPECTION');
+      expect(verifyRes.body.data.visibleImprovementScore).toBeLessThan(40);
+
+      // 2. Attempting to approve must be blocked
+      const blockedRes = await request(app)
+        .post(`/api/verification/${reportId}/decision`)
+        .set('Authorization', `Bearer ${authorityToken}`)
+        .send({
+          decision: 'APPROVED',
+          notes: 'Attempting closure with mismatched evidence'
+        });
+      expect(blockedRes.status).toBe(400);
+      expect(blockedRes.body.message).toContain('Formal closure blocked');
+    });
+
+    it('Valid After-Repair image produces PASS and allows formal closure', async () => {
+      // 1. Re-verify with genuine repaired road photo
+      const verifyPassRes = await request(app)
+        .post('/api/verification/run')
+        .set('Authorization', `Bearer ${authorityToken}`)
+        .send({
+          reportId,
+          afterImageUrl: '/uploads/repaired-road-patch.jpg',
+        });
+      expect(verifyPassRes.status).toBe(200);
+      expect(verifyPassRes.body.data.recommendation).toBe('PASS');
+
+      // 2. Approve & Formally Close Complaint
       const closeRes = await request(app)
         .post(`/api/verification/${reportId}/decision`)
         .set('Authorization', `Bearer ${authorityToken}`)

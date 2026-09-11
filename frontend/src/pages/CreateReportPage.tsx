@@ -119,6 +119,7 @@ export const CreateReportPage: React.FC = () => {
   const [submitStep, setSubmitStep] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [savedOfflineDraft, setSavedOfflineDraft] = useState<OfflineDraftReport | null>(null);
+  const [cancelledReport, setCancelledReport] = useState<any | null>(null);
 
   // Auto-resolve jurisdiction whenever location pin moves
   const fetchJurisdiction = useCallback(async (lat: number, lng: number) => {
@@ -316,6 +317,14 @@ export const CreateReportPage: React.FC = () => {
         damageTypeHint,
       });
 
+      // If backend cancelled report due to invalid road-damage evidence
+      if (newReport.status === 'CANCELLED' || (newReport as any).validRoadDamage === false) {
+        setCancelledReport(newReport);
+        setSubmitting(false);
+        setSubmitStep('');
+        return;
+      }
+
       // Navigate directly to live complaint lifecycle view
       navigate(`/reports/${newReport.id}`);
     } catch (err: any) {
@@ -333,6 +342,79 @@ export const CreateReportPage: React.FC = () => {
       }
     }
   };
+
+  if (cancelledReport) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-12">
+        <div className="bg-white rounded-3xl p-8 border-2 border-rose-200 shadow-xl space-y-6 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
+            <ShieldAlert className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-2">
+            <div className="inline-flex items-center space-x-1.5 bg-rose-100 text-rose-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+              <span>✕ Report Cancelled</span>
+              <span>•</span>
+              <span>Intake Stopped</span>
+            </div>
+            <h2 className="text-2xl font-bold font-heading text-slate-900">
+              Invalid Road-Damage Evidence
+            </h2>
+            <p className="text-sm text-slate-600 max-w-md mx-auto">
+              No supported road damage was detected in the uploaded photograph. Your image does not appear to be related to a road-safety issue.
+            </p>
+          </div>
+
+          <div className="bg-rose-50/60 rounded-2xl p-5 border border-rose-200/80 text-left space-y-3 text-xs">
+            <div className="text-slate-800 font-semibold">
+              Supported road-safety evidence includes:
+            </div>
+            <ul className="list-disc pl-5 space-y-1 text-slate-600">
+              <li>Pothole & Cavity Hazards</li>
+              <li>Water Logging & Ponding Hazards</li>
+              <li>Surface Cracking & Asphalt Stripping</li>
+              <li>Road Edge Damage & Shoulder Drop-off</li>
+              <li>Drain / Manhole Collapse Hazards</li>
+            </ul>
+            <div className="pt-2 border-t border-rose-200/60 flex items-center justify-between text-rose-900 font-bold">
+              <span>Risk Assessment:</span>
+              <span className="bg-white px-2.5 py-1 rounded border border-rose-300">NO RISK FOUND</span>
+            </div>
+            <div className="flex items-center justify-between text-slate-700">
+              <span>Forwarded to Authority:</span>
+              <span className="font-bold text-rose-700">NO</span>
+            </div>
+            <div className="flex items-center justify-between text-slate-500">
+              <span>Submission Reference:</span>
+              <span className="font-mono text-slate-700">{cancelledReport.id}</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setCancelledReport(null);
+                setImageUrl('');
+                setSelectedFile(null);
+                setSelectedPreset(null);
+              }}
+              className="flex-1 bg-gov-700 hover:bg-gov-800 text-white font-bold py-3 px-4 rounded-xl shadow-sm transition text-xs"
+            >
+              Upload Road Photo Again
+            </button>
+            <Link
+              to="/my-reports"
+              className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-4 rounded-xl transition text-xs flex items-center justify-center space-x-1.5"
+            >
+              <span>View in My Reports</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (savedOfflineDraft) {
     return (

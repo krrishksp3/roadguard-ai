@@ -27,8 +27,8 @@ export class AIService {
     return this.provider instanceof DemoAIProvider;
   }
 
-  async analyzeRoadDamage(imageUrl: string, description: string, damageTypeHint?: string): Promise<AIAnalysisOutput> {
-    return this.provider.analyzeRoadDamage({ imageUrl, description, damageTypeHint });
+  async analyzeRoadDamage(imageUrl: string, description: string, damageTypeHint?: string, imageFilename?: string): Promise<AIAnalysisOutput> {
+    return this.provider.analyzeRoadDamage({ imageUrl, imageFilename, description, damageTypeHint });
   }
 
   async verifyRepair(beforeImageUrl: string, afterImageUrl: string, damageType: string, originalSeverity: string): Promise<AIVerificationOutput> {

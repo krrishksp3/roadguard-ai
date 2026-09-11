@@ -2,6 +2,7 @@ import { AIAnalysisOutput, AIVerificationOutput } from './schemas';
 
 export interface DamageAnalysisInput {
   imageUrl: string;
+  imageFilename?: string;
   description: string;
   damageTypeHint?: string;
 }

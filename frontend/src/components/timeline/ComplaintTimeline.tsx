@@ -8,6 +8,32 @@ interface ComplaintTimelineProps {
 }
 
 export const ComplaintTimeline: React.FC<ComplaintTimelineProps> = ({ timeline, currentStatus }) => {
+  if (currentStatus === 'CANCELLED') {
+    return (
+      <div className="bg-rose-50/80 rounded-xl p-5 border border-rose-200 shadow-sm space-y-3">
+        <div className="flex items-center space-x-2.5">
+          <AlertCircle className="w-5 h-5 text-rose-600" />
+          <h3 className="text-sm font-bold uppercase tracking-wider text-rose-900">
+            Intake Validation — Report Cancelled
+          </h3>
+        </div>
+        <div className="bg-white rounded-xl p-3.5 border border-rose-200/80 text-xs space-y-2">
+          <div className="flex items-center space-x-2 text-emerald-700 font-semibold">
+            <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>Step 1: Report Submitted by Citizen</span>
+          </div>
+          <div className="flex items-center space-x-2 text-rose-700 font-bold">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>Step 2: Image Validation → INVALID EVIDENCE (Intake Stopped)</span>
+          </div>
+        </div>
+        <p className="text-xs text-rose-700">
+          No supported road damage was detected in the uploaded evidence. Complaint stopped at intake and not dispatched to road authority.
+        </p>
+      </div>
+    );
+  }
+
   const steps = [
     { key: 'REPORTED', label: 'Report Created' },
     { key: 'AI_ANALYZED', label: 'AI Analyzed' },
@@ -19,9 +45,25 @@ export const ComplaintTimeline: React.FC<ComplaintTimelineProps> = ({ timeline, 
     { key: 'RESOLVED', label: 'Resolved' },
   ];
 
-  const getStepStatus = (stepKey: string) => {
+  const statusOrder = [
+    'REPORTED',
+    'AI_ANALYZED',
+    'ASSIGNED',
+    'ACKNOWLEDGED',
+    'INSPECTION_SCHEDULED',
+    'REPAIR_IN_PROGRESS',
+    'AI_VERIFIED',
+    'RESOLVED',
+  ];
+
+  const currentStatusIndex = statusOrder.indexOf(currentStatus);
+
+  const getStepStatus = (stepKey: string, index: number) => {
     const event = timeline.find((e) => e.status === stepKey);
-    if (event) return { status: 'completed', event };
+    const hasReached = currentStatusIndex !== -1 && index <= currentStatusIndex;
+    if (event && (hasReached || currentStatus === 'RESOLVED')) {
+      return { status: 'completed', event };
+    }
     if (currentStatus === 'NEEDS_REINSPECTION' && stepKey === 'RESOLVED') {
       return { status: 'rejected', event: null };
     }
@@ -39,7 +81,7 @@ export const ComplaintTimeline: React.FC<ComplaintTimelineProps> = ({ timeline, 
       <div className="hidden md:flex items-center justify-between mb-8 relative">
         <div className="absolute top-1/2 left-0 right-0 h-1 bg-slate-100 -translate-y-1/2 z-0"></div>
         {steps.map((step, idx) => {
-          const { status } = getStepStatus(step.key);
+          const { status } = getStepStatus(step.key, idx);
           const isDone = status === 'completed';
           const isCurrent = currentStatus === step.key;
 

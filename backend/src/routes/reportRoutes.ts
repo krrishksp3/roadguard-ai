@@ -7,6 +7,7 @@ const router = Router();
 // Public & Citizen reporting routes
 router.get('/', ReportController.getAllReports);
 router.get('/my-reports', authenticateJwt, ReportController.getCitizenReports);
+router.get('/my', authenticateJwt, ReportController.getCitizenReports);
 router.get('/:id', ReportController.getReportById);
 router.post('/', optionalAuthenticateJwt, ReportController.createReport);
 

@@ -233,9 +233,17 @@ export const MyReportsPage: React.FC = () => {
                       <StatusBadge status={report.status} />
                     </div>
                     <h4 className="font-bold text-slate-800 text-xs capitalize truncate">
-                      {report.damageType.replace(/_/g, ' ')}
+                      {report.status === 'CANCELLED' ? 'Invalid Road-Damage Evidence' : report.damageType.replace(/_/g, ' ')}
                     </h4>
-                    <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">{report.description}</p>
+                    {report.status === 'CANCELLED' ? (
+                      <div className="mt-1 p-2 bg-rose-50/80 rounded-lg border border-rose-200 text-[10px] text-rose-900 space-y-0.5">
+                        <p><span className="font-bold">Reason:</span> Invalid road-damage evidence</p>
+                        <p><span className="font-semibold">Forwarded to Authority:</span> <span className="font-bold text-rose-700">NO</span> • <span className="font-semibold">Risk:</span> NO RISK FOUND</p>
+                        <p className="text-slate-500 italic text-[9px]">Uploaded photo does not show supported road hazard.</p>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">{report.description}</p>
+                    )}
                   </div>
                 </div>
 

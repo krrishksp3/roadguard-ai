@@ -13,7 +13,11 @@ export const RiskScoreMeter: React.FC<RiskScoreMeterProps> = ({ score, priorityA
   let barColor = 'bg-green-500';
   let label = 'LOW RISK';
 
-  if (score >= 80) {
+  if (score <= 0) {
+    color = 'text-slate-600 bg-slate-50 border-slate-200';
+    barColor = 'bg-slate-300';
+    label = 'NO RISK FOUND';
+  } else if (score >= 80) {
     color = 'text-red-700 bg-red-50 border-red-200';
     barColor = 'bg-red-600';
     label = 'CRITICAL RISK';
@@ -28,6 +32,15 @@ export const RiskScoreMeter: React.FC<RiskScoreMeterProps> = ({ score, priorityA
   }
 
   if (compact) {
+    if (score <= 0) {
+      return (
+        <div className="flex items-center space-x-2">
+          <div className="px-2 py-0.5 rounded font-bold text-[11px] border bg-slate-100 text-slate-700 border-slate-200">
+            NO RISK FOUND
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="flex items-center space-x-2">
         <div className={`px-2 py-0.5 rounded font-bold text-xs border ${color}`}>
@@ -53,7 +66,9 @@ export const RiskScoreMeter: React.FC<RiskScoreMeterProps> = ({ score, priorityA
     <div className={`p-4 rounded-xl border ${color}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-2">
-          {score >= 80 ? (
+          {score <= 0 ? (
+            <CheckCircle2 className="w-5 h-5 text-slate-500" />
+          ) : score >= 80 ? (
             <AlertTriangle className="w-5 h-5 text-red-600 animate-pulse" />
           ) : score >= 65 ? (
             <ShieldAlert className="w-5 h-5 text-orange-600" />
@@ -62,12 +77,16 @@ export const RiskScoreMeter: React.FC<RiskScoreMeterProps> = ({ score, priorityA
           )}
           <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
         </div>
-        <span className="text-2xl font-extrabold">{score} <span className="text-sm font-normal text-slate-500">/ 100</span></span>
+        {score <= 0 ? (
+          <span className="text-sm font-bold text-slate-600">N/A (No Hazard)</span>
+        ) : (
+          <span className="text-2xl font-extrabold">{score} <span className="text-sm font-normal text-slate-500">/ 100</span></span>
+        )}
       </div>
 
       {/* Progress bar */}
       <div className="w-full bg-slate-200 rounded-full h-2.5 mb-3 overflow-hidden">
-        <div className={`h-2.5 rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${score}%` }}></div>
+        <div className={`h-2.5 rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${Math.max(0, score)}%` }}></div>
       </div>
 
       {/* Explanations & Factor Breakdown */}
