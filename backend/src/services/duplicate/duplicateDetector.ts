@@ -22,16 +22,47 @@ export interface DuplicateCheckResult {
   nearbyReportsCount: number;
 }
 
+export function isSameImage(
+  url1?: string | null,
+  filename1?: string | null,
+  url2?: string | null,
+  filename2?: string | null
+): boolean {
+  if (!url1 && !filename1 && !url2 && !filename2) return false;
+  
+  // Direct exact URL match
+  if (url1 && url2 && url1 === url2) return true;
+  
+  // Extract clean basename from URLs
+  const base1 = (url1 || '').split('/').pop()?.split('?')[0]?.toLowerCase();
+  const base2 = (url2 || '').split('/').pop()?.split('?')[0]?.toLowerCase();
+  if (base1 && base2 && base1 === base2 && base1 !== 'image.jpg' && base1 !== 'photo.jpg') {
+    return true;
+  }
+
+  // Filename match (ignoring generic auto-generated camera names)
+  const fn1 = (filename1 || '').trim().toLowerCase();
+  const fn2 = (filename2 || '').trim().toLowerCase();
+  const genericNames = ['image.jpg', 'photo.jpg', 'file.jpg', 'upload.jpg', 'evidence.jpg', 'blob', ''];
+  if (fn1 && fn2 && fn1 === fn2 && !genericNames.includes(fn1)) {
+    return true;
+  }
+
+  return false;
+}
+
 export class DuplicateDetector {
   /**
-   * Check if a newly submitted report is geographically and temporally adjacent to an existing open report.
-   * Proximity threshold: 120 meters.
-   * Time window: past 14 days.
+   * Check if a newly submitted report is a duplicate of an existing active report:
+   * CASE A: Same image + same/matching location (<= 150m) -> DUPLICATE
+   * CASE B: Same image + DIFFERENT location (> 150m) -> NOT duplicate
+   * CASE C: Different images + same location (<= 150m) -> NOT duplicate
    */
   public static async checkForDuplicates(
     latitude: number,
     longitude: number,
-    damageType: string,
+    imageUrl?: string,
+    imageFilename?: string,
     excludeReportId?: string
   ): Promise<DuplicateCheckResult> {
     const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
@@ -40,13 +71,15 @@ export class DuplicateDetector {
     const candidates = await prisma.roadReport.findMany({
       where: {
         createdAt: { gte: fourteenDaysAgo },
-        status: { notIn: ['RESOLVED'] },
+        status: { notIn: ['RESOLVED', 'CANCELLED'] },
         ...(excludeReportId ? { id: { not: excludeReportId } } : {}),
       },
       select: {
         id: true,
         latitude: true,
         longitude: true,
+        imageUrl: true,
+        imageFilename: true,
         damageType: true,
         status: true,
       },
@@ -59,8 +92,9 @@ export class DuplicateDetector {
       const dist = getDistanceMeters(latitude, longitude, report.latitude, report.longitude);
       if (dist <= 150) {
         nearbyReportsCount++;
-        // If within 80 meters and similar damage type, mark as potential duplicate
-        if (dist <= 80 && (report.damageType === damageType || damageType === 'other') && !primaryDuplicateId) {
+        // CASE A: Same image + matching location (dist <= 150m)
+        const sameImg = isSameImage(imageUrl, imageFilename, report.imageUrl, report.imageFilename);
+        if (sameImg && !primaryDuplicateId) {
           primaryDuplicateId = report.id;
         }
       }

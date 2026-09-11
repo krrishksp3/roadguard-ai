@@ -27,6 +27,7 @@ export class DemoAIProvider implements AIProvider {
       'screenshot', 'screen', 'display', 'paper', 'receipt', 'invoice', 'form',
       'textbook', 'notebook', 'resume', 'portrait', 'person', 'selfie', 'face', 'human',
       'boy', 'girl', 'man', 'woman', 'crowd', 'profile', 'people', 'friend', 'group',
+      'chest', 'torso', 'body', 'hand', 'leg', 'setup',
       'cat', 'dog', 'pet', 'animal', 'bird', 'food', 'dish', 'meal', 'fruit', 'vegetable',
       'indoor', 'room', 'bed', 'sofa', 'furniture', 'office', 'laptop', 'phone', 'desk',
       'cartoon', 'anime', 'avatar', 'drawing', 'painting', 'sketch', 'invalid', 'non-road',
@@ -34,25 +35,39 @@ export class DemoAIProvider implements AIProvider {
       'idol', 'random', 'unrelated', 'fake', 'sample_id', 'dummy'
     ];
 
-    const hasExplicitNonRoadKeyword = nonRoadKeywords.some((kw) => imageContext.includes(kw));
+    const imageTokens = imageContext.replace(/[^a-z0-9]/g, ' ').split(/\s+/).filter(Boolean);
+    const hasExplicitNonRoadKeyword = nonRoadKeywords.some((kw) => {
+      // Use token boundary match to prevent "surface" matching "face", "manhole" matching "man", "catchbasin" matching "cat"
+      if (kw.length <= 4 || ['person', 'human', 'face', 'setup', 'chest', 'torso', 'body'].includes(kw)) {
+        return imageTokens.includes(kw) || new RegExp(`\\b${kw}\\b`, 'i').test(imageContext);
+      }
+      return imageContext.includes(kw) || imageTokens.includes(kw);
+    });
 
     // 3. Supported Road Damage Categories Detection strictly in Image Context
-    const potholeKeywords = ['pothole', 'crater', 'cavity', 'depression', 'pavement_break', 'potholes'];
-    const waterlogKeywords = ['waterlog', 'water-filled', 'water_logged', 'flood', 'puddle', 'ponding', 'standing_water', 'waterlogging'];
-    const crackKeywords = ['crack', 'fracture', 'fissure', 'surface_deterioration', 'surface-deterioration', 'raveling', 'alligator', 'asphalt_peel', 'stripping', 'macadam'];
-    const edgeKeywords = ['road-edge', 'road_edge', 'edge_drop', 'shoulder_damage', 'shoulder_drop', 'scour', 'edge_damage', 'berm', 'curb_break'];
-    const drainKeywords = ['drain', 'drainage', 'gutter', 'manhole', 'culvert', 'catchbasin', 'storm_drain', 'sewer'];
-    const generalRoadKeywords = ['asphalt', 'pavement', 'highway', 'street', 'lane', 'tar', 'bitumen', 'carriageway', 'repaired-road', 'photo-1515162816999', 'unsplash'];
+    const potholeKeywords = ['pothole', 'potholes', 'crater', 'cavity', 'depression', 'pavement_break', 'hole', 'road_hole', 'rut', 'rutting', 'pit', 'severepothole', 'deep_pothole'];
+    const waterlogKeywords = ['waterlog', 'waterlogging', 'water-filled', 'water_logged', 'waterlogged', 'flood', 'flooded', 'puddle', 'ponding', 'standing_water', 'stormwater', 'submerged'];
+    const crackKeywords = ['crack', 'cracks', 'cracking', 'fracture', 'fissure', 'surface_cracking', 'alligator', 'asphalt_peel', 'stripping', 'macadam'];
+    const surfaceKeywords = ['surface_deterioration', 'surface-deterioration', 'surface_damage', 'raveling', 'ravelling', 'deterioration', 'rough_surface', 'wear'];
+    const edgeKeywords = ['road-edge', 'road_edge', 'edge_drop', 'edge_dropping', 'shoulder_damage', 'shoulder_drop', 'scour', 'edge_damage', 'berm', 'curb_break', 'road_shoulder'];
+    const drainKeywords = ['drain', 'drainage', 'gutter', 'manhole', 'culvert', 'catchbasin', 'storm_drain', 'sewer', 'chamber'];
+    const generalRoadKeywords = [
+      'asphalt', 'pavement', 'highway', 'street', 'lane', 'tar', 'bitumen', 'carriageway',
+      'repaired-road', 'photo-1515162816999', 'unsplash', 'demo-evidence', 'severe-damage',
+      'damage', 'defect', 'hazard', 'distress', 'road_distress', 'carriageway', 'evidence-',
+      'camera', 'capture', 'img_', 'photo', 'upload'
+    ];
 
     const hasRoadWord = (/\broad\b/i).test(cleanFilename) || (/\broad\b/i).test(cleanUrl);
     const hasPotholeImage = potholeKeywords.some((kw) => imageContext.includes(kw));
     const hasWaterlogImage = waterlogKeywords.some((kw) => imageContext.includes(kw));
     const hasCrackImage = crackKeywords.some((kw) => imageContext.includes(kw));
+    const hasSurfaceImage = surfaceKeywords.some((kw) => imageContext.includes(kw));
     const hasEdgeImage = edgeKeywords.some((kw) => imageContext.includes(kw));
     const hasDrainImage = drainKeywords.some((kw) => imageContext.includes(kw));
     const hasGeneralRoadImage = generalRoadKeywords.some((kw) => imageContext.includes(kw)) || hasRoadWord;
 
-    const isRoadDamageImage = (hasPotholeImage || hasWaterlogImage || hasCrackImage || hasEdgeImage || hasDrainImage || hasGeneralRoadImage) && !hasExplicitNonRoadKeyword;
+    const isRoadDamageImage = (hasPotholeImage || hasWaterlogImage || hasCrackImage || hasSurfaceImage || hasEdgeImage || hasDrainImage || hasGeneralRoadImage) && !hasExplicitNonRoadKeyword;
 
     // IF NOT VALID ROAD DAMAGE:
     // User text "pothole" or "water logging" must NEVER force classification if image is unrelated!
@@ -79,12 +94,14 @@ export class DemoAIProvider implements AIProvider {
       };
     }
 
-    // VALID ROAD DAMAGE: Classify into one of 5 supported categories
+    // VALID ROAD DAMAGE: Classify into one of 6 supported categories
     let damageType: AIAnalysisOutput['damageType'] = 'pothole';
     if (hasWaterlogImage) {
       damageType = 'waterlogging';
     } else if (hasCrackImage) {
-      damageType = imageContext.includes('surface') ? 'surface_deterioration' : 'crack';
+      damageType = 'crack';
+    } else if (hasSurfaceImage) {
+      damageType = 'surface_deterioration';
     } else if (hasEdgeImage) {
       damageType = 'road_edge_damage';
     } else if (hasDrainImage) {
@@ -92,12 +109,12 @@ export class DemoAIProvider implements AIProvider {
     } else if (hasPotholeImage) {
       damageType = 'pothole';
     } else {
-      // If general road image, use secondary user text to clarify defect
-      if (userText.includes('water') || userText.includes('flood')) {
+      // General road photo: check if defect is specified in hints or description
+      if (userText.includes('water') || userText.includes('flood') || userText.includes('puddle')) {
         damageType = 'waterlogging';
       } else if (userText.includes('crack') || userText.includes('fracture')) {
         damageType = 'crack';
-      } else if (userText.includes('surface') || userText.includes('rough')) {
+      } else if (userText.includes('surface') || userText.includes('deterioration') || userText.includes('rough')) {
         damageType = 'surface_deterioration';
       } else if (userText.includes('edge') || userText.includes('shoulder')) {
         damageType = 'road_edge_damage';
@@ -108,32 +125,41 @@ export class DemoAIProvider implements AIProvider {
       }
     }
 
-    // Severity assessment
+    // Deterministic severity and roadSafetyRisk based on image defect
     let severity: AIAnalysisOutput['severity'] = 'medium';
     let roadSafetyRisk = 55;
     let confidence = 0.88;
 
-    const fullText = (userText + ' ' + imageContext);
-    if (fullText.includes('deep') || fullText.includes('huge') || fullText.includes('large') || fullText.includes('severe') || fullText.includes('accident') || fullText.includes('danger') || fullText.includes('critical')) {
-      severity = 'critical';
-      roadSafetyRisk = 88;
-      confidence = 0.94;
-    } else if (fullText.includes('high') || fullText.includes('broken') || fullText.includes('big') || fullText.includes('bad') || fullText.includes('heavy')) {
-      severity = 'high';
-      roadSafetyRisk = 76;
-      confidence = 0.91;
-    } else if (fullText.includes('small') || fullText.includes('minor') || fullText.includes('slight')) {
-      severity = 'low';
-      roadSafetyRisk = 32;
-      confidence = 0.84;
-    } else {
-      if (damageType === 'pothole') {
+    if (damageType === 'pothole') {
+      if (imageContext.includes('deep') || imageContext.includes('crater') || imageContext.includes('severe')) {
+        severity = 'critical';
+        roadSafetyRisk = 88;
+        confidence = 0.94;
+      } else {
         severity = 'high';
         roadSafetyRisk = 72;
-      } else if (damageType === 'waterlogging') {
-        severity = 'high';
-        roadSafetyRisk = 80;
+        confidence = 0.90;
       }
+    } else if (damageType === 'waterlogging') {
+      severity = 'high';
+      roadSafetyRisk = 80;
+      confidence = 0.92;
+    } else if (damageType === 'crack') {
+      severity = 'medium';
+      roadSafetyRisk = 55;
+      confidence = 0.88;
+    } else if (damageType === 'surface_deterioration') {
+      severity = 'medium';
+      roadSafetyRisk = 50;
+      confidence = 0.85;
+    } else if (damageType === 'road_edge_damage') {
+      severity = 'high';
+      roadSafetyRisk = 75;
+      confidence = 0.89;
+    } else if (damageType === 'drainage_damage') {
+      severity = 'high';
+      roadSafetyRisk = 70;
+      confidence = 0.88;
     }
 
     // Technical descriptions matching civic engineering terminology
@@ -186,10 +212,16 @@ export class DemoAIProvider implements AIProvider {
     // Check if after image is identical to before (no work done) or contains non-road content
     const nonRoadKeywords = [
       'id_card', 'idcard', 'student', 'classroom', 'aadhaar', 'license', 'certificate',
-      'person', 'selfie', 'food', 'animal', 'indoor', 'screenshot', 'document',
-      'invalid', 'unrelated', 'fake'
+      'person', 'selfie', 'face', 'human', 'boy', 'girl', 'man', 'woman', 'chest', 'torso',
+      'setup', 'food', 'animal', 'indoor', 'screenshot', 'document', 'invalid', 'unrelated', 'fake'
     ];
-    const isMismatched = nonRoadKeywords.some((kw) => after.includes(kw)) || (after && before && after === before);
+    const afterTokens = after.replace(/[^a-z0-9]/g, ' ').split(/\s+/).filter(Boolean);
+    const isMismatched = nonRoadKeywords.some((kw) => {
+      if (kw.length <= 4 || ['person', 'human', 'face', 'setup', 'chest', 'torso', 'body'].includes(kw)) {
+        return afterTokens.includes(kw) || new RegExp(`\\b${kw}\\b`, 'i').test(after);
+      }
+      return after.includes(kw) || afterTokens.includes(kw);
+    }) || (after && before && after === before);
 
     if (isMismatched) {
       return {

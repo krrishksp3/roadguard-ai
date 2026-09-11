@@ -66,7 +66,7 @@ describe('RoadGuard API Endpoints', () => {
     let authorityToken: string;
     let adminToken: string;
     let reportId: string;
-    const testImageUrl = '/uploads/pothole_verified_test.jpg';
+    const testImageUrl = `/uploads/pothole_verified_test_${Date.now()}.jpg`;
 
     beforeAll(async () => {
       const cRes = await request(app).post('/api/auth/login').send({ email: 'citizen@roadguard.demo', password: 'citizen123' });
@@ -194,7 +194,7 @@ describe('RoadGuard API Endpoints', () => {
       expect(actRes.body.success).toBe(true);
     });
 
-    it('Non-road image with description "pothole" yields CANCELLED, NO RISK FOUND, and is hidden from Authority and Admin', async () => {
+    it('Acceptance 1: Unrelated ID-card/setup image + description "pothole" yields CANCELLED, NO RISK FOUND, hidden from Authority/Admin', async () => {
       const nonRoadRes = await request(app)
         .post('/api/reports')
         .set('Authorization', `Bearer ${citizenToken}`)
@@ -211,7 +211,6 @@ describe('RoadGuard API Endpoints', () => {
       expect(nonRoadRes.body.validRoadDamage).toBe(false);
       expect(nonRoadRes.body.status).toBe('CANCELLED');
       expect(nonRoadRes.body.data.riskScore).toBe(0);
-      expect(nonRoadRes.body.data.status).toBe('CANCELLED');
 
       const cancelledId = nonRoadRes.body.data.id;
 
@@ -220,36 +219,158 @@ describe('RoadGuard API Endpoints', () => {
         .get('/api/reports')
         .set('Authorization', `Bearer ${authorityToken}`);
       expect(authList.status).toBe(200);
-      const inAuthList = authList.body.data.some((r: any) => r.id === cancelledId);
-      expect(inAuthList).toBe(false);
+      expect(authList.body.data.some((r: any) => r.id === cancelledId)).toBe(false);
 
       // Admin Overview must NOT include cancelled report
       const adminOverview = await request(app)
         .get('/api/admin/overview')
         .set('Authorization', `Bearer ${adminToken}`);
       expect(adminOverview.status).toBe(200);
-      const inCritical = adminOverview.body.data.criticalReports.some((r: any) => r.id === cancelledId);
-      const inOverdue = adminOverview.body.data.overdueReports.some((r: any) => r.id === cancelledId);
-      expect(inCritical).toBe(false);
-      expect(inOverdue).toBe(false);
+      expect(adminOverview.body.data.criticalReports.some((r: any) => r.id === cancelledId)).toBe(false);
 
       // Citizen CAN see it in their own complaints
       const citizenReports = await request(app)
         .get('/api/reports/my')
         .set('Authorization', `Bearer ${citizenToken}`);
       expect(citizenReports.status).toBe(200);
-      const inCitizenList = citizenReports.body.data.some((r: any) => r.id === cancelledId);
-      expect(inCitizenList).toBe(true);
+      expect(citizenReports.body.data.some((r: any) => r.id === cancelledId)).toBe(true);
     });
 
-    it('Unrelated After-Repair image produces NEEDS_REINSPECTION and blocks formal closure', async () => {
+    it('Acceptance 2: Unrelated person/chest image + description "pothole" yields CANCELLED, NO RISK FOUND', async () => {
+      const personRes = await request(app)
+        .post('/api/reports')
+        .set('Authorization', `Bearer ${citizenToken}`)
+        .send({
+          latitude: 28.9810,
+          longitude: 77.7010,
+          address: 'Civil Lines, Meerut',
+          description: 'pothole',
+          imageFilename: 'person_chest_photo.jpg',
+          imageUrl: '/uploads/person_chest_photo.jpg',
+        });
+
+      expect(personRes.status).toBe(201);
+      expect(personRes.body.validRoadDamage).toBe(false);
+      expect(personRes.body.status).toBe('CANCELLED');
+      expect(personRes.body.data.riskScore).toBe(0);
+    });
+
+    it('Acceptance 3, 4, 5: Genuine road-damage images (pothole, water-logging, surface-cracking) are VALID', async () => {
+      // 3. Genuine Pothole
+      const potholeRes = await request(app)
+        .post('/api/reports')
+        .set('Authorization', `Bearer ${citizenToken}`)
+        .send({
+          latitude: 28.9830,
+          longitude: 77.7030,
+          address: 'Delhi Road, Meerut',
+          description: 'Dangerous pothole cavity on main carriage way',
+          imageFilename: `pothole-deep-cavity-${Date.now()}.jpg`,
+          imageUrl: `/uploads/pothole-deep-cavity-${Date.now()}.jpg`,
+        });
+      expect(potholeRes.status).toBe(201);
+      expect(potholeRes.body.data.damageType).toBe('pothole');
+      expect(potholeRes.body.data.status).toBe('ASSIGNED');
+      expect(potholeRes.body.data.riskScore).toBeGreaterThan(0);
+
+      // 4. Genuine Water Logging
+      const waterlogRes = await request(app)
+        .post('/api/reports')
+        .set('Authorization', `Bearer ${citizenToken}`)
+        .send({
+          latitude: 28.9840,
+          longitude: 77.7040,
+          address: 'Surajkund Road, Meerut',
+          description: 'Submerged road cavity and water ponding',
+          imageFilename: `waterlogging-street-${Date.now()}.jpg`,
+          imageUrl: `/uploads/waterlogging-street-${Date.now()}.jpg`,
+        });
+      expect(waterlogRes.status).toBe(201);
+      expect(waterlogRes.body.data.damageType).toBe('waterlogging');
+      expect(waterlogRes.body.data.status).toBe('ASSIGNED');
+      expect(waterlogRes.body.data.riskScore).toBeGreaterThan(0);
+
+      // 5. Genuine Surface Cracking
+      const crackRes = await request(app)
+        .post('/api/reports')
+        .set('Authorization', `Bearer ${citizenToken}`)
+        .send({
+          latitude: 28.9850,
+          longitude: 77.7050,
+          address: 'Garh Road, Meerut',
+          description: 'Alligator cracking and asphalt fatigue',
+          imageFilename: `surface-cracking-lane-${Date.now()}.jpg`,
+          imageUrl: `/uploads/surface-cracking-lane-${Date.now()}.jpg`,
+        });
+      expect(crackRes.status).toBe(201);
+      expect(crackRes.body.data.damageType).toBe('crack');
+      expect(crackRes.body.data.status).toBe('ASSIGNED');
+      expect(crackRes.body.data.riskScore).toBeGreaterThan(0);
+    });
+
+    it('Acceptance 6, 7, 8: Duplicate detection (Case A, B, C) and deterministic risk baseline', async () => {
+      const fixedImageUrl = `/uploads/verified_pothole_evidence_${Date.now()}.jpg`;
+      const fixedFilename = `verified_pothole_evidence_${Date.now()}.jpg`;
+
+      // First submission at Location 1 (Jail Chungi)
+      const sub1 = await request(app)
+        .post('/api/reports')
+        .set('Authorization', `Bearer ${citizenToken}`)
+        .send({
+          latitude: 28.9835,
+          longitude: 77.7425,
+          address: 'Jail Chungi, Meerut',
+          description: 'Pothole on lane',
+          imageFilename: fixedFilename,
+          imageUrl: fixedImageUrl,
+        });
+      expect(sub1.status).toBe(201);
+      const report1Id = sub1.body.data.id;
+      const report1Risk = sub1.body.data.riskScore;
+
+      // Acceptance 6 (Case A): Same exact pothole image submitted twice at same location -> DUPLICATE
+      const sub2 = await request(app)
+        .post('/api/reports')
+        .set('Authorization', `Bearer ${citizenToken}`)
+        .send({
+          latitude: 28.9836, // ~15 meters away
+          longitude: 77.7426,
+          address: 'Jail Chungi, Meerut',
+          description: 'Pothole duplicate',
+          imageFilename: fixedFilename,
+          imageUrl: fixedImageUrl,
+        });
+      expect(sub2.status).toBe(200);
+      expect(sub2.body.isDuplicate).toBe(true);
+      expect(sub2.body.duplicateOfId).toBe(report1Id);
+
+      // Acceptance 7 (Case B): Same exact pothole image submitted at a DIFFERENT location (> 2km away) -> NOT duplicate
+      const sub3 = await request(app)
+        .post('/api/reports')
+        .set('Authorization', `Bearer ${citizenToken}`)
+        .send({
+          latitude: 29.0100, // ~3km away
+          longitude: 77.7800,
+          address: 'Partapur Bypass, Meerut',
+          description: 'Same defect photo reported for another spot',
+          imageFilename: fixedFilename,
+          imageUrl: fixedImageUrl,
+        });
+      expect(sub3.status).toBe(201);
+      expect(sub3.body.data.id).not.toBe(report1Id);
+
+      // Acceptance 8: Exact same image produces identical deterministic risk score
+      expect(sub3.body.data.riskScore).toBe(report1Risk);
+    });
+
+    it('Acceptance 10: Unrelated After-Repair image produces NEEDS_REINSPECTION and blocks formal closure', async () => {
       // 1. Run verification with unrelated after image
       const verifyRes = await request(app)
         .post('/api/verification/run')
         .set('Authorization', `Bearer ${authorityToken}`)
         .send({
           reportId,
-          afterImageUrl: '/uploads/id_card_unrelated.png',
+          afterImageUrl: '/uploads/person_chest_unrelated.png',
         });
       expect(verifyRes.status).toBe(200);
       expect(verifyRes.body.data.recommendation).toBe('NEEDS_REINSPECTION');

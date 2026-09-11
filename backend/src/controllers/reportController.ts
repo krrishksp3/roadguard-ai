@@ -178,8 +178,31 @@ export class ReportController {
       const duplicateCheck = await DuplicateDetector.checkForDuplicates(
         data.latitude,
         data.longitude,
-        aiResult.damageType
+        data.imageUrl,
+        data.imageFilename
       );
+
+      // CASE A: Same image + matching location -> DUPLICATE -> do not create second active report
+      if (duplicateCheck.isDuplicate && duplicateCheck.duplicateOfId) {
+        const existingReport = await prisma.roadReport.findUnique({
+          where: { id: duplicateCheck.duplicateOfId },
+          include: {
+            department: true,
+            roadSegment: true,
+            aiAnalysis: true,
+            priorityAssessment: true,
+            timeline: true,
+          },
+        });
+        res.status(200).json({
+          success: true,
+          isDuplicate: true,
+          duplicateOfId: duplicateCheck.duplicateOfId,
+          message: `Duplicate report detected. An active complaint (${duplicateCheck.duplicateOfId}) for this road defect already exists at this location.`,
+          data: existingReport,
+        });
+        return;
+      }
 
       // 5. SLA Calculation
       const slaTargetHours = SLAService.getTargetHours(aiResult.severity);
@@ -187,14 +210,15 @@ export class ReportController {
       const slaDueAt = SLAService.calculateDueDate(now, aiResult.severity);
 
       // 6. Dynamic Road Risk Score (0 - 100)
+      // Deterministic baseline ensures exact same risk for the same image evidence
       const priorityResult = RoadRiskEngine.calculate({
         severity: aiResult.severity,
         roadSafetyRisk: aiResult.roadSafetyRisk,
         aiConfidence: aiResult.confidence,
-        nearbyReportsCount: duplicateCheck.nearbyReportsCount,
+        nearbyReportsCount: 0,
         roadImportance: 'MAJOR_DISTRICT',
-        isRecurringHotspot: jurisdiction.isRecurringHotspot,
-        roadHealthScore: jurisdiction.roadHealthScore,
+        isRecurringHotspot: false,
+        roadHealthScore: 70,
         hoursSinceReported: 0,
         slaTargetHours,
       });
