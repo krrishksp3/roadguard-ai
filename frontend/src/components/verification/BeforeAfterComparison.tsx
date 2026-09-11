@@ -283,7 +283,11 @@ export const BeforeAfterComparison: React.FC<BeforeAfterProps> = ({
                   }`}
                 >
                   RECOMMENDATION:{' '}
-                  {verification.recommendation === 'PASS' ? 'PASS' : 'NEEDS HUMAN REVIEW'}
+                  {verification.recommendation === 'PASS'
+                    ? 'PASS'
+                    : verification.recommendation === 'REJECT'
+                    ? 'REJECTED'
+                    : 'NEEDS HUMAN REVIEW'}
                 </span>
               </div>
 

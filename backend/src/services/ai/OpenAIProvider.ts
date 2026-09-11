@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { AIProvider, DamageAnalysisInput, VerificationInput } from './AIProvider';
 import { AIAnalysisOutput, AIAnalysisOutputSchema, AIVerificationOutput, AIVerificationOutputSchema } from './schemas';
 import { ROAD_DAMAGE_ANALYSIS_SYSTEM_PROMPT, ROAD_REPAIR_VERIFICATION_PROMPT } from './prompts';
@@ -19,6 +21,30 @@ export class OpenAIProvider implements AIProvider {
     }
 
     try {
+      let resolvedImageUrl = input.imageUrl;
+      const candidates = [
+        input.imageUrl ? path.basename(input.imageUrl.split('?')[0]) : '',
+        input.imageFilename || '',
+      ].filter(Boolean);
+
+      for (const name of candidates) {
+        const searchPaths = [
+          path.resolve(__dirname, '../../../uploads', name),
+          path.resolve(__dirname, '../../uploads', name),
+          path.resolve(process.cwd(), 'uploads', name),
+        ];
+        for (const p of searchPaths) {
+          if (fs.existsSync(p)) {
+            const buf = fs.readFileSync(p);
+            const ext = path.extname(p).toLowerCase();
+            const mimeType = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
+            resolvedImageUrl = `data:${mimeType};base64,${buf.toString('base64')}`;
+            break;
+          }
+        }
+        if (resolvedImageUrl.startsWith('data:')) break;
+      }
+
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -34,7 +60,7 @@ export class OpenAIProvider implements AIProvider {
               role: 'user',
               content: [
                 { type: 'text', text: `Citizen Description: "${input.description}". Damage hint: "${input.damageTypeHint || ''}"` },
-                { type: 'image_url', image_url: { url: input.imageUrl } },
+                { type: 'image_url', image_url: { url: resolvedImageUrl } },
               ],
             },
           ],

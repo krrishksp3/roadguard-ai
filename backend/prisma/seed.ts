@@ -854,7 +854,7 @@ async function main() {
         priorityAssessment: {
           create: {
             overallScore: t.risk,
-            riskLevel: t.risk >= 80 ? 'CRITICAL' : t.risk >= 65 ? 'HIGH' : t.risk >= 45 ? 'MEDIUM' : 'LOW',
+            riskLevel: t.risk >= 76 ? 'CRITICAL' : t.risk >= 50 ? 'HIGH' : t.risk >= 40 ? 'MEDIUM' : 'LOW',
             severityScore: 22,
             safetyRiskScore: 18,
             densityScore: 12,

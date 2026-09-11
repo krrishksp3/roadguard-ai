@@ -33,10 +33,17 @@ export function getImageFingerprint(url?: string | null, filename?: string | nul
     ].filter(Boolean);
 
     for (const name of candidates) {
-      const filePath = path.resolve(__dirname, '../../uploads', name);
-      if (fs.existsSync(filePath)) {
-        const buf = fs.readFileSync(filePath);
-        return crypto.createHash('md5').update(buf).digest('hex');
+      const searchDirs = [
+        path.resolve(__dirname, '../../../uploads', name),
+        path.resolve(__dirname, '../../uploads', name),
+        path.resolve(process.cwd(), 'uploads', name),
+        path.resolve(process.cwd(), 'uploads/demo', name),
+      ];
+      for (const p of searchDirs) {
+        if (fs.existsSync(p)) {
+          const buf = fs.readFileSync(p);
+          return crypto.createHash('md5').update(buf).digest('hex');
+        }
       }
     }
   } catch {

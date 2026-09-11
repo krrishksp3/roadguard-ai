@@ -78,14 +78,14 @@ export class VerificationController {
           reportId,
           beforeImageUrl: report.imageUrl,
           afterImageUrl: report.repairAfterImageUrl || report.imageUrl,
-          locationMatchConfidence: 94,
-          visibleImprovementScore: isApproved ? 90 : 35,
-          remainingDamageScore: isApproved ? 10 : 75,
-          overallConfidence: 92,
-          recommendation: isApproved ? 'PASS' : 'NEEDS_REINSPECTION',
-          recommendationExplanation: isApproved
+          locationMatchConfidence: report.verificationResult?.locationMatchConfidence ?? (isApproved ? 90 : 0),
+          visibleImprovementScore: report.verificationResult?.visibleImprovementScore ?? (isApproved ? 85 : 0),
+          remainingDamageScore: report.verificationResult?.remainingDamageScore ?? (isApproved ? 15 : 100),
+          overallConfidence: report.verificationResult?.overallConfidence ?? (isApproved ? 90 : 0),
+          recommendation: report.verificationResult?.recommendation ?? (isApproved ? 'PASS' : 'NEEDS_REINSPECTION'),
+          recommendationExplanation: report.verificationResult?.recommendationExplanation ?? (isApproved
             ? 'Visual comparison indicates road distress has been remediated with asphalt overlay. Verified by Authority Officer.'
-            : 'Remediation rejected by inspecting officer. Residual depression or inadequate compaction observed.',
+            : 'Remediation rejected by inspecting officer. Residual depression or inadequate compaction observed.'),
           authorityDecision: data.decision,
           authorityNotes: data.notes,
         },

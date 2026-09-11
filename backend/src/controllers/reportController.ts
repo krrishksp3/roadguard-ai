@@ -544,7 +544,7 @@ export class ReportController {
 
       const user = await prisma.user.findUnique({ where: { id: userId } });
       const userIds = [userId];
-      if (user?.email === 'citizen@roadguard.demo' && !userIds.includes('user-citizen-01')) {
+      if ((user?.email === 'citizen@roadguard.demo' || user?.role === 'CITIZEN') && !userIds.includes('user-citizen-01')) {
         userIds.push('user-citizen-01');
       }
 
