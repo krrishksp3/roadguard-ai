@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
 import { prisma } from '../../config/prisma';
 
 // Haversine distance in meters
@@ -22,6 +25,26 @@ export interface DuplicateCheckResult {
   nearbyReportsCount: number;
 }
 
+export function getImageFingerprint(url?: string | null, filename?: string | null): string {
+  try {
+    const candidates = [
+      url ? path.basename(url.split('?')[0]) : '',
+      filename || ''
+    ].filter(Boolean);
+
+    for (const name of candidates) {
+      const filePath = path.resolve(__dirname, '../../uploads', name);
+      if (fs.existsSync(filePath)) {
+        const buf = fs.readFileSync(filePath);
+        return crypto.createHash('md5').update(buf).digest('hex');
+      }
+    }
+  } catch {
+    // Non-blocking
+  }
+  return '';
+}
+
 export function isSameImage(
   url1?: string | null,
   filename1?: string | null,
@@ -33,6 +56,11 @@ export function isSameImage(
   // Direct exact URL match
   if (url1 && url2 && url1 === url2) return true;
   
+  // Direct content hash match
+  const fp1 = getImageFingerprint(url1, filename1);
+  const fp2 = getImageFingerprint(url2, filename2);
+  if (fp1 && fp2 && fp1 === fp2) return true;
+
   // Extract clean basename from URLs
   const base1 = (url1 || '').split('/').pop()?.split('?')[0]?.toLowerCase();
   const base2 = (url2 || '').split('/').pop()?.split('?')[0]?.toLowerCase();

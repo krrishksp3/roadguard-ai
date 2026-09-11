@@ -255,6 +255,75 @@ describe('RoadGuard API Endpoints', () => {
       expect(personRes.body.data.riskScore).toBe(0);
     });
 
+    it('TEST B & C: Chess, poster, QR code, religious images with description "pothole" are rejected as INVALID', async () => {
+      const testCases = [
+        { filename: 'chess_game_board.jpg', url: '/uploads/chess_game_board.jpg' },
+        { filename: 'movie_poster_advertisement.png', url: '/uploads/movie_poster_advertisement.png' },
+        { filename: 'payment_qr_code.png', url: '/uploads/payment_qr_code.png' },
+        { filename: 'temple_idol_religious_photo.jpg', url: '/uploads/temple_idol_religious_photo.jpg' },
+        { filename: 'classroom_product_interior.jpg', url: '/uploads/classroom_product_interior.jpg' },
+      ];
+
+      for (const tc of testCases) {
+        const res = await request(app)
+          .post('/api/reports')
+          .set('Authorization', `Bearer ${citizenToken}`)
+          .send({
+            latitude: 28.9815,
+            longitude: 77.7015,
+            address: 'Civil Lines, Meerut',
+            description: 'pothole', // User text says pothole, but image wins!
+            imageFilename: tc.filename,
+            imageUrl: tc.url,
+          });
+
+        expect(res.status).toBe(201);
+        expect(res.body.validRoadDamage).toBe(false);
+        expect(res.body.status).toBe('CANCELLED');
+        expect(res.body.data.riskScore).toBe(0);
+        expect(res.body.data.damageType).toBe('other');
+        expect(res.body.data.departmentId).toBeNull();
+      }
+    });
+
+    it('TEST J: Lifecycle enforcement blocks jumping directly to AI_VERIFIED or uploading repair photo on ASSIGNED report', async () => {
+      // Create a fresh valid report
+      const freshReport = await request(app)
+        .post('/api/reports')
+        .set('Authorization', `Bearer ${citizenToken}`)
+        .send({
+          latitude: 28.9870,
+          longitude: 77.7070,
+          address: 'Delhi Road, Meerut',
+          description: 'Pothole on right lane',
+          imageFilename: `pothole-lifecycle-test-${Date.now()}.jpg`,
+          imageUrl: `/uploads/pothole-lifecycle-test-${Date.now()}.jpg`,
+        });
+      expect(freshReport.status).toBe(201);
+      const freshId = freshReport.body.data.id;
+      expect(freshReport.body.data.status).toBe('ASSIGNED');
+
+      // Attempting to run repair verification directly on ASSIGNED report must be rejected
+      const verifyAttempt = await request(app)
+        .post('/api/verification/run')
+        .set('Authorization', `Bearer ${authorityToken}`)
+        .send({
+          reportId: freshId,
+          afterImageUrl: '/uploads/repaired-road.jpg',
+        });
+      expect(verifyAttempt.status).toBe(500); // Throws Lifecycle order violation error
+
+      // Attempting to upload after-repair photo directly on ASSIGNED report must be rejected
+      const afterAttempt = await request(app)
+        .post(`/api/reports/${freshId}/after-photo`)
+        .set('Authorization', `Bearer ${authorityToken}`)
+        .send({
+          afterImageUrl: '/uploads/repaired-road.jpg',
+        });
+      expect(afterAttempt.status).toBe(400);
+      expect(afterAttempt.body.message).toContain('Lifecycle order violation');
+    });
+
     it('Acceptance 3, 4, 5: Genuine road-damage images (pothole, water-logging, surface-cracking) are VALID', async () => {
       // 3. Genuine Pothole
       const potholeRes = await request(app)
@@ -363,7 +432,7 @@ describe('RoadGuard API Endpoints', () => {
       expect(sub3.body.data.riskScore).toBe(report1Risk);
     });
 
-    it('Acceptance 10: Unrelated After-Repair image produces NEEDS_REINSPECTION and blocks formal closure', async () => {
+    it('Acceptance 10: Unrelated After-Repair image produces REJECT / NEEDS_REINSPECTION and blocks formal closure', async () => {
       // 1. Run verification with unrelated after image
       const verifyRes = await request(app)
         .post('/api/verification/run')
@@ -373,8 +442,9 @@ describe('RoadGuard API Endpoints', () => {
           afterImageUrl: '/uploads/person_chest_unrelated.png',
         });
       expect(verifyRes.status).toBe(200);
-      expect(verifyRes.body.data.recommendation).toBe('NEEDS_REINSPECTION');
-      expect(verifyRes.body.data.visibleImprovementScore).toBeLessThan(40);
+      expect(['REJECT', 'NEEDS_REINSPECTION']).toContain(verifyRes.body.data.recommendation);
+      expect(verifyRes.body.data.visibleImprovementScore).toBeLessThanOrEqual(5);
+      expect(verifyRes.body.data.locationMatchConfidence).toBeLessThanOrEqual(5);
 
       // 2. Attempting to approve must be blocked
       const blockedRes = await request(app)

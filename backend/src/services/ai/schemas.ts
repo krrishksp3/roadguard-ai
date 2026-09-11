@@ -37,7 +37,7 @@ export const AIVerificationOutputSchema = z.object({
   visibleImprovementScore: z.number().min(0).max(100),
   remainingDamageScore: z.number().min(0).max(100),
   overallConfidence: z.number().min(0).max(100),
-  recommendation: z.enum(['PASS', 'NEEDS_REINSPECTION', 'INCONCLUSIVE']),
+  recommendation: z.enum(['PASS', 'NEEDS_REINSPECTION', 'INCONCLUSIVE', 'REJECT']),
   explanation: z.string(),
 });
 

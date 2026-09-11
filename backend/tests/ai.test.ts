@@ -21,19 +21,55 @@ describe('DemoAIProvider', () => {
     expect(parseResult.success).toBe(true);
   });
 
-  it('should perform repair verification and conform to AIVerificationOutputSchema', async () => {
-    const verification = await provider.verifyRepair({
-      beforeImageUrl: 'https://images.unsplash.com/before.jpg',
-      afterImageUrl: 'https://images.unsplash.com/after.jpg',
-      damageType: 'pothole',
-      originalSeverity: 'high',
+  it('should reject clearly unrelated images (poster, QR code, product, interior) even if description says "pothole"', async () => {
+    // 1. Poster image with description "pothole"
+    const posterRes = await provider.analyzeRoadDamage({
+      imageUrl: '/uploads/campaign_poster.png',
+      imageFilename: 'campaign_poster.png',
+      description: 'pothole',
     });
+    expect(posterRes.validRoadDamage).toBe(false);
+    expect(posterRes.classification).toBe('INVALID_EVIDENCE');
+    expect(posterRes.confidence).toBe(0);
+    expect(posterRes.roadSafetyRisk).toBe(0);
 
-    expect(verification.recommendation).toBe('PASS');
-    expect(verification.locationMatchConfidence).toBeGreaterThan(80);
-    expect(verification.visibleImprovementScore).toBeGreaterThan(80);
+    // 2. QR code image with description "pothole"
+    const qrRes = await provider.analyzeRoadDamage({
+      imageUrl: '/uploads/payment_qr_code.png',
+      imageFilename: 'payment_qr_code.png',
+      description: 'pothole',
+    });
+    expect(qrRes.validRoadDamage).toBe(false);
+    expect(qrRes.classification).toBe('INVALID_EVIDENCE');
+    expect(qrRes.confidence).toBe(0);
+    expect(qrRes.roadSafetyRisk).toBe(0);
 
-    const parseResult = AIVerificationOutputSchema.safeParse(verification);
-    expect(parseResult.success).toBe(true);
+    // 3. Product image with description "pothole"
+    const productRes = await provider.analyzeRoadDamage({
+      imageUrl: '/uploads/product_box_package.jpg',
+      imageFilename: 'product_box_package.jpg',
+      description: 'pothole',
+    });
+    expect(productRes.validRoadDamage).toBe(false);
+    expect(productRes.classification).toBe('INVALID_EVIDENCE');
+
+    // 4. Filename contains pothole but is a poster (CASE 4)
+    const potholePosterRes = await provider.analyzeRoadDamage({
+      imageUrl: '/uploads/pothole_awareness_poster.jpg',
+      imageFilename: 'pothole_awareness_poster.jpg',
+      description: 'pothole',
+    });
+    expect(potholePosterRes.validRoadDamage).toBe(false);
+    expect(potholePosterRes.classification).toBe('INVALID_EVIDENCE');
+
+    // 5. Ambiguous / uncertain image without recognized defect (CASE 5)
+    const uncertainRes = await provider.analyzeRoadDamage({
+      imageUrl: '/uploads/random_snapshot_123.jpg',
+      imageFilename: 'random_snapshot_123.jpg',
+      description: 'look at this',
+    });
+    expect(uncertainRes.validRoadDamage).toBe(false);
+    expect(uncertainRes.classification).toBe('INVALID_EVIDENCE');
+    expect(uncertainRes.confidence).toBe(0);
   });
 });

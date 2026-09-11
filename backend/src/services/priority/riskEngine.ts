@@ -28,11 +28,11 @@ export interface RiskCalculationResult {
  * Canonical Risk Category Mapping:
  * 0 - 39.99  = LOW
  * 40 - 49.99 = MEDIUM
- * 50 - 74.99 = HIGH
- * 75 - 100   = CRITICAL
+ * 50 - 75.99 = HIGH
+ * 76 - 100   = CRITICAL
  */
 export function getRiskLevelFromScore(score: number): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' {
-  if (score >= 75) return 'CRITICAL';
+  if (score >= 76) return 'CRITICAL';
   if (score >= 50) return 'HIGH';
   if (score >= 40) return 'MEDIUM';
   return 'LOW';

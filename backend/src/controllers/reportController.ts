@@ -55,18 +55,19 @@ export class ReportController {
       try {
         aiResult = await aiService.analyzeRoadDamage(data.imageUrl, data.description, data.damageTypeHint, data.imageFilename);
       } catch (err) {
-        console.error('[ReportController] AI analysis failure, continuing with fallback:', err);
+        console.error('[ReportController] AI analysis failure, rejecting unverified evidence:', err);
         aiResult = {
-          validRoadDamage: true,
-          classification: 'VALID_ROAD_DAMAGE' as const,
-          damageType: (data.damageTypeHint as any) || 'pothole',
-          severity: 'medium' as const,
-          confidence: 0.85,
-          visibleDamage: true,
-          roadSafetyRisk: 60,
-          description: 'Pavement distress reported by citizen.',
-          recommendedAction: 'Field inspection required.',
-          imageQuality: { isAcceptable: true, isBlurry: false, isTooDark: false, hasRoadVisible: true, qualityScore: 85 },
+          validRoadDamage: false,
+          classification: 'INVALID_EVIDENCE' as const,
+          damageType: 'other' as const,
+          severity: 'low' as const,
+          confidence: 0,
+          visibleDamage: false,
+          roadSafetyRisk: 0,
+          description: 'Invalid road-damage evidence: AI verification could not validate pavement damage in the uploaded photograph.',
+          recommendedAction: 'No civil action required. Report cancelled at intake due to invalid evidence.',
+          cancellationReason: 'The uploaded image does not appear to show a road/pavement defect.',
+          imageQuality: { isAcceptable: false, isBlurry: false, isTooDark: false, hasRoadVisible: false, qualityScore: 0 },
         };
       }
 
@@ -184,22 +185,88 @@ export class ReportController {
 
       // CASE A: Same image + matching location -> DUPLICATE -> do not create second active report
       if (duplicateCheck.isDuplicate && duplicateCheck.duplicateOfId) {
-        const existingReport = await prisma.roadReport.findUnique({
-          where: { id: duplicateCheck.duplicateOfId },
+        const duplicateReport = await prisma.roadReport.create({
+          data: {
+            id: reportId,
+            clientReportId: data.clientReportId,
+            userId,
+            imageUrl: data.imageUrl,
+            latitude: data.latitude,
+            longitude: data.longitude,
+            address: data.address || `${jurisdiction.roadSegmentName || 'Meerut Road Network'}, Meerut, UP`,
+            description: data.description,
+            damageType: aiResult.damageType,
+            severity: aiResult.severity,
+            status: 'CANCELLED',
+            roadSegmentId: null,
+            departmentId: null,
+            riskScore: 0,
+            isDuplicate: true,
+            duplicateOfId: duplicateCheck.duplicateOfId,
+            isRecurring: false,
+            slaTargetHours: 0,
+            slaDueAt: new Date(),
+            isOverdue: false,
+            aiAnalysis: {
+              create: {
+                damageType: aiResult.damageType,
+                severity: aiResult.severity,
+                confidence: aiResult.confidence,
+                visibleDamage: true,
+                roadSafetyRisk: 0,
+                description: `DUPLICATE EVIDENCE: This image has already been submitted by another citizen under active complaint ${duplicateCheck.duplicateOfId}.`,
+                recommendedAction: `No additional civil action required. Track reference complaint ${duplicateCheck.duplicateOfId}.`,
+                isAcceptableQuality: true,
+                qualityScore: 90,
+                isBlurry: false,
+                isTooDark: false,
+                hasRoadVisible: true,
+              },
+            },
+            priorityAssessment: {
+              create: {
+                overallScore: 0,
+                riskLevel: 'LOW',
+                severityScore: 0,
+                safetyRiskScore: 0,
+                densityScore: 0,
+                roadImportanceScore: 0,
+                recurrenceScore: 0,
+                slaUrgencyScore: 0,
+                explanation: JSON.stringify([`Duplicate report of active complaint ${duplicateCheck.duplicateOfId}.`]),
+              },
+            },
+            timeline: {
+              create: [
+                {
+                  status: 'REPORTED',
+                  label: 'Report Submitted',
+                  description: 'Citizen submitted photograph for intake verification.',
+                },
+                {
+                  status: 'CANCELLED',
+                  label: 'Report Cancelled — Duplicate Evidence',
+                  description: `Duplicate road-damage evidence detected. This image has already been submitted by another citizen under reference complaint ${duplicateCheck.duplicateOfId}.`,
+                },
+              ],
+            },
+          },
           include: {
-            department: true,
-            roadSegment: true,
             aiAnalysis: true,
             priorityAssessment: true,
-            timeline: true,
+            timeline: { orderBy: { timestamp: 'asc' } },
+            department: true,
+            roadSegment: true,
           },
         });
+
         res.status(200).json({
           success: true,
           isDuplicate: true,
           duplicateOfId: duplicateCheck.duplicateOfId,
-          message: `Duplicate report detected. An active complaint (${duplicateCheck.duplicateOfId}) for this road defect already exists at this location.`,
-          data: existingReport,
+          status: 'CANCELLED',
+          message: `Duplicate road-damage evidence detected. This image has already been submitted by another citizen. Reference complaint: ${duplicateCheck.duplicateOfId}`,
+          data: duplicateReport,
         });
         return;
       }
@@ -475,8 +542,14 @@ export class ReportController {
         return;
       }
 
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      const userIds = [userId];
+      if (user?.email === 'citizen@roadguard.demo' && !userIds.includes('user-citizen-01')) {
+        userIds.push('user-citizen-01');
+      }
+
       const reports = await prisma.roadReport.findMany({
-        where: { userId },
+        where: { userId: { in: userIds } },
         include: {
           aiAnalysis: true,
           priorityAssessment: true,
@@ -603,11 +676,53 @@ export class ReportController {
         return;
       }
 
+      if (report.status === 'CANCELLED') {
+        res.status(400).json({ success: false, message: 'Cannot upload repair evidence for a cancelled report.' });
+        return;
+      }
+
+      // Lifecycle enforcement: cannot jump directly from early intake states
+      const earlyStates = ['REPORTED', 'AI_ANALYZED', 'PRIORITY_CALCULATED', 'ASSIGNED'];
+      if (earlyStates.includes(report.status)) {
+        res.status(400).json({
+          success: false,
+          message: `Lifecycle order violation: Complaint must pass through ACKNOWLEDGED, INSPECTION_SCHEDULED, and REPAIR_IN_PROGRESS before after-repair evidence can be submitted (current status: ${report.status}).`,
+        });
+        return;
+      }
+
+      // Validate after-repair evidence image
+      const nonRoadKeywords = [
+        'id_card', 'idcard', 'student', 'classroom', 'aadhaar', 'license', 'certificate',
+        'chess', 'game', 'board', 'pawn', 'king', 'queen', 'knight', 'bishop', 'checkers',
+        'poster', 'banner', 'flyer', 'ad', 'qr', 'qrcode', 'qr_code', 'barcode',
+        'person', 'selfie', 'face', 'human', 'boy', 'girl', 'man', 'woman',
+        'product', 'indoor', 'interior', 'furniture', 'cartoon', 'religious', 'temple', 'fake'
+      ];
+      const afterLower = body.afterImageUrl.toLowerCase();
+      const afterTokens = afterLower.replace(/[^a-z0-9]/g, ' ').split(/\s+/).filter(Boolean);
+      const isInvalidAfter = nonRoadKeywords.some((kw) => {
+        if (kw.length <= 4 || ['person', 'human', 'face', 'game', 'chess', 'board'].includes(kw)) {
+          return afterTokens.includes(kw) || new RegExp(`\\b${kw}\\b`, 'i').test(afterLower);
+        }
+        return afterLower.includes(kw) || afterTokens.includes(kw);
+      });
+
+      if (isInvalidAfter) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid after-repair evidence: the uploaded image does not appear to show a valid road/repair view.',
+        });
+        return;
+      }
+
+      // Update report: if in REPAIR_IN_PROGRESS, advance to REPAIR_COMPLETED. Do NOT mark AI_VERIFIED or RESOLVED here.
+      const newStatus = report.status === 'REPAIR_IN_PROGRESS' ? 'REPAIR_COMPLETED' : report.status;
       const updatedReport = await prisma.roadReport.update({
         where: { id },
         data: {
           repairAfterImageUrl: body.afterImageUrl,
-          status: report.status === 'REPORTED' || report.status === 'ASSIGNED' || report.status === 'INSPECTION_SCHEDULED' ? 'REPAIR_COMPLETED' : report.status,
+          status: newStatus,
         },
         include: {
           aiAnalysis: true,
@@ -622,7 +737,7 @@ export class ReportController {
       await prisma.statusTimelineEvent.create({
         data: {
           reportId: id,
-          status: 'REPAIR_COMPLETED',
+          status: newStatus,
           label: 'After-Repair Photo Uploaded',
           description: body.notes
             ? `Genuine remediation evidence photographed on-site. Note: ${body.notes}`

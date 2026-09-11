@@ -51,20 +51,20 @@ export class VerificationController {
 
       const isApproved = data.decision === 'APPROVED';
 
-      // If approving, after-repair evidence is required
-      if (isApproved && !report.repairAfterImageUrl) {
+      // If approving but AI verification flagged evidence mismatch or rejection
+      if (isApproved && (report.verificationResult?.recommendation === 'NEEDS_REINSPECTION' || report.verificationResult?.recommendation === 'REJECT')) {
         res.status(400).json({
           success: false,
-          message: 'Cannot formally close complaint: after-repair evidence photo has not been uploaded yet.',
+          message: 'Formal closure blocked: AI Repair Verification flagged evidence mismatch or rejection (REJECT / NEEDS_REINSPECTION). Valid repair evidence and reinspection is required before sign-off.',
         });
         return;
       }
 
-      // If approving but AI verification flagged evidence mismatch
-      if (isApproved && report.verificationResult?.recommendation === 'NEEDS_REINSPECTION') {
+      // If approving, after-repair evidence is required
+      if (isApproved && !report.repairAfterImageUrl) {
         res.status(400).json({
           success: false,
-          message: 'Formal closure blocked: AI Repair Verification flagged evidence mismatch (IMAGE DO NOT MATCH / NEEDS_REINSPECTION). Reinspection is required before sign-off.',
+          message: 'Formal closure blocked: after-repair evidence photo has not been accepted or uploaded yet.',
         });
         return;
       }

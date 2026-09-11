@@ -51,15 +51,15 @@ describe('RoadRiskEngine', () => {
     expect(getRiskLevelFromScore(49)).toBe('MEDIUM');
     expect(getRiskLevelFromScore(49.9)).toBe('MEDIUM');
 
-    // 50 - 74.99 = HIGH
+    // 50 - 75 = HIGH
     expect(getRiskLevelFromScore(50)).toBe('HIGH');
     expect(getRiskLevelFromScore(52)).toBe('HIGH');
     expect(getRiskLevelFromScore(70)).toBe('HIGH');
     expect(getRiskLevelFromScore(74)).toBe('HIGH');
-    expect(getRiskLevelFromScore(74.9)).toBe('HIGH');
+    expect(getRiskLevelFromScore(75)).toBe('HIGH');
 
-    // 75 - 100 = CRITICAL
-    expect(getRiskLevelFromScore(75)).toBe('CRITICAL');
+    // 76 - 100 = CRITICAL
+    expect(getRiskLevelFromScore(76)).toBe('CRITICAL');
     expect(getRiskLevelFromScore(85)).toBe('CRITICAL');
     expect(getRiskLevelFromScore(91)).toBe('CRITICAL');
     expect(getRiskLevelFromScore(100)).toBe('CRITICAL');

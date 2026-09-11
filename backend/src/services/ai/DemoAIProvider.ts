@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { AIProvider, DamageAnalysisInput, VerificationInput } from './AIProvider';
 import { AIAnalysisOutput, AIVerificationOutput } from './schemas';
 
@@ -6,39 +8,79 @@ export class DemoAIProvider implements AIProvider {
 
   async analyzeRoadDamage(input: DamageAnalysisInput): Promise<AIAnalysisOutput> {
     // 1. IMAGE CONTEXT IS PRIMARY SIGNAL
-    // Extract clean image tokens: strip domain names and brand names like "roadguard" so host URLs NEVER match "road"!
+    // Extract clean image tokens: strip domain names, storage paths (/uploads/), and multer prefixes (evidence-)
     const cleanUrl = (input.imageUrl || '')
       .replace(/https?:\/\/[^\/]+/gi, '')
+      .replace(/\/uploads\//gi, '')
+      .replace(/evidence-\d+-[a-f0-9]+/gi, '')
       .replace(/roadguard/gi, '')
       .toLowerCase();
     const cleanFilename = (input.imageFilename || '')
+      .replace(/evidence-\d+-[a-f0-9]+/gi, '')
       .replace(/roadguard/gi, '')
       .toLowerCase();
-    const imageContext = `${cleanFilename} ${cleanUrl}`;
+    let imageContext = `${cleanFilename} ${cleanUrl}`;
     
-    // User text is secondary context only
+    // Inspect uploaded file on disk if available for embedded text/metadata markers
+    try {
+      const candidates = [
+        input.imageUrl ? path.basename(input.imageUrl.split('?')[0]) : '',
+        input.imageFilename || ''
+      ].filter(Boolean);
+
+      for (const name of candidates) {
+        const filePath = path.resolve(__dirname, '../../uploads', name);
+        if (fs.existsSync(filePath)) {
+          const buffer = fs.readFileSync(filePath);
+          const sample = buffer.slice(0, 4096).toString('latin1').toLowerCase();
+          imageContext += ` ${sample}`;
+          break;
+        }
+      }
+    } catch {
+      // Non-blocking file inspection fallback
+    }
+
+    // User text is secondary context only (never used as primary evidence)
     const userText = (input.description || '').toLowerCase();
 
     // 2. Explicit Non-Road / Unrelated Subject Tokens
     const nonRoadKeywords = [
+      // Identity & Official documents
       'id_card', 'idcard', 'id-card', 'student', 'college', 'school', 'classroom',
       'aadhaar', 'adhaar', 'pan_card', 'pancard', 'license', 'certificate', 'marksheet',
       'admit_card', 'roll_no', 'campus', 'hall_ticket', 'document', 'doc', 'pdf',
-      'screenshot', 'screen', 'display', 'paper', 'receipt', 'invoice', 'form',
-      'textbook', 'notebook', 'resume', 'portrait', 'person', 'selfie', 'face', 'human',
-      'boy', 'girl', 'man', 'woman', 'crowd', 'profile', 'people', 'friend', 'group',
-      'chest', 'torso', 'body', 'hand', 'leg', 'setup',
-      'cat', 'dog', 'pet', 'animal', 'bird', 'food', 'dish', 'meal', 'fruit', 'vegetable',
-      'indoor', 'room', 'bed', 'sofa', 'furniture', 'office', 'laptop', 'phone', 'desk',
-      'cartoon', 'anime', 'avatar', 'drawing', 'painting', 'sketch', 'invalid', 'non-road',
-      'nonroad', 'radha', 'rani', 'krishna', 'god', 'deity', 'temple', 'mandir', 'pooja',
-      'idol', 'random', 'unrelated', 'fake', 'sample_id', 'dummy'
+      'paper', 'receipt', 'invoice', 'form', 'textbook', 'notebook', 'resume',
+      // Games & Boards
+      'chess', 'game', 'board', 'pawn', 'king', 'queen', 'knight', 'bishop', 'checkers', 'dice',
+      // Posters / Codes / Displays
+      'poster', 'banner', 'flyer', 'billboard', 'hoarding', 'ad', 'advertisement',
+      'qr', 'qrcode', 'qr_code', 'qr-code', 'barcode', 'code',
+      'screenshot', 'screen', 'display', 'monitor', 'tv',
+      // Products / Merchandise / Packaging
+      'product', 'item', 'package', 'packaging', 'bottle', 'can', 'box', 'merchandise',
+      'clothing', 'shirt', 'dress', 'shoe', 'bag',
+      // People / Anatomy
+      'portrait', 'person', 'selfie', 'face', 'human', 'boy', 'girl', 'man', 'woman',
+      'crowd', 'profile', 'people', 'friend', 'group', 'chest', 'torso', 'body', 'hand', 'leg', 'setup',
+      'child', 'children',
+      // Animals & Food
+      'cat', 'dog', 'pet', 'animal', 'bird', 'food', 'dish', 'meal', 'fruit', 'vegetable', 'snack',
+      // Buildings & Interiors
+      'indoor', 'interior', 'room', 'bed', 'sofa', 'furniture', 'office', 'laptop', 'phone', 'desk',
+      'wall', 'ceiling', 'tile', 'door', 'window', 'kitchen', 'hallway', 'living_room', 'building',
+      // Graphics / Drawings
+      'cartoon', 'anime', 'avatar', 'drawing', 'painting', 'sketch', 'clipart', 'illustration',
+      // Religious & Non-road Photos
+      'religious', 'god', 'deity', 'temple', 'mandir', 'pooja', 'idol', 'church', 'mosque', 'prayer',
+      'krishna', 'radha', 'rani', 'shiva', 'jesus', 'buddha', 'ganesha',
+      // Explicit invalid markers
+      'invalid', 'non-road', 'nonroad', 'random', 'unrelated', 'fake', 'sample_id', 'dummy'
     ];
 
     const imageTokens = imageContext.replace(/[^a-z0-9]/g, ' ').split(/\s+/).filter(Boolean);
     const hasExplicitNonRoadKeyword = nonRoadKeywords.some((kw) => {
-      // Use token boundary match to prevent "surface" matching "face", "manhole" matching "man", "catchbasin" matching "cat"
-      if (kw.length <= 4 || ['person', 'human', 'face', 'setup', 'chest', 'torso', 'body'].includes(kw)) {
+      if (kw.length <= 4 || ['person', 'human', 'face', 'setup', 'chest', 'torso', 'body', 'poster', 'product', 'interior', 'game', 'chess', 'board'].includes(kw)) {
         return imageTokens.includes(kw) || new RegExp(`\\b${kw}\\b`, 'i').test(imageContext);
       }
       return imageContext.includes(kw) || imageTokens.includes(kw);
@@ -47,15 +89,14 @@ export class DemoAIProvider implements AIProvider {
     // 3. Supported Road Damage Categories Detection strictly in Image Context
     const potholeKeywords = ['pothole', 'potholes', 'crater', 'cavity', 'depression', 'pavement_break', 'hole', 'road_hole', 'rut', 'rutting', 'pit', 'severepothole', 'deep_pothole'];
     const waterlogKeywords = ['waterlog', 'waterlogging', 'water-filled', 'water_logged', 'waterlogged', 'flood', 'flooded', 'puddle', 'ponding', 'standing_water', 'stormwater', 'submerged'];
-    const crackKeywords = ['crack', 'cracks', 'cracking', 'fracture', 'fissure', 'surface_cracking', 'alligator', 'asphalt_peel', 'stripping', 'macadam'];
-    const surfaceKeywords = ['surface_deterioration', 'surface-deterioration', 'surface_damage', 'raveling', 'ravelling', 'deterioration', 'rough_surface', 'wear'];
+    const crackKeywords = ['crack', 'cracks', 'cracking', 'fracture', 'fissure', 'surface_cracking', 'alligator'];
+    const surfaceKeywords = ['surface_deterioration', 'surface-deterioration', 'surface_damage', 'raveling', 'ravelling', 'asphalt_peel', 'stripping', 'macadam'];
     const edgeKeywords = ['road-edge', 'road_edge', 'edge_drop', 'edge_dropping', 'shoulder_damage', 'shoulder_drop', 'scour', 'edge_damage', 'berm', 'curb_break', 'road_shoulder'];
     const drainKeywords = ['drain', 'drainage', 'gutter', 'manhole', 'culvert', 'catchbasin', 'storm_drain', 'sewer', 'chamber'];
     const generalRoadKeywords = [
       'asphalt', 'pavement', 'highway', 'street', 'lane', 'tar', 'bitumen', 'carriageway',
       'repaired-road', 'photo-1515162816999', 'unsplash', 'demo-evidence', 'severe-damage',
-      'damage', 'defect', 'hazard', 'distress', 'road_distress', 'carriageway', 'evidence-',
-      'camera', 'capture', 'img_', 'photo', 'upload'
+      'tarmac', 'roadway'
     ];
 
     const hasRoadWord = (/\broad\b/i).test(cleanFilename) || (/\broad\b/i).test(cleanUrl);
@@ -71,6 +112,7 @@ export class DemoAIProvider implements AIProvider {
 
     // IF NOT VALID ROAD DAMAGE:
     // User text "pothole" or "water logging" must NEVER force classification if image is unrelated!
+    // IMAGE ALWAYS WINS OVER TEXT!
     if (!isRoadDamageImage || hasExplicitNonRoadKeyword) {
       return {
         validRoadDamage: false,
@@ -80,9 +122,9 @@ export class DemoAIProvider implements AIProvider {
         confidence: 0,
         visibleDamage: false,
         roadSafetyRisk: 0,
-        description: 'INVALID ROAD-DAMAGE EVIDENCE: The uploaded photograph does not appear to show a supported road-safety issue (Pothole, Water Logging, Surface Cracking, Edge Dropping, or Drain/Manhole Damage).',
+        description: 'Invalid road-damage evidence: the uploaded image does not appear to show a road/pavement defect.',
         recommendedAction: 'No civil action required. Report cancelled at intake due to invalid evidence.',
-        cancellationReason: 'The uploaded photograph is not related to a supported road-damage category.',
+        cancellationReason: 'The uploaded photograph does not appear to show a road/pavement defect.',
         imageQuality: {
           isAcceptable: false,
           isBlurry: false,
@@ -109,7 +151,7 @@ export class DemoAIProvider implements AIProvider {
     } else if (hasPotholeImage) {
       damageType = 'pothole';
     } else {
-      // General road photo: check if defect is specified in hints or description
+      // General road photo: check if a supported defect is specified in hints or description
       if (userText.includes('water') || userText.includes('flood') || userText.includes('puddle')) {
         damageType = 'waterlogging';
       } else if (userText.includes('crack') || userText.includes('fracture')) {
@@ -120,25 +162,73 @@ export class DemoAIProvider implements AIProvider {
         damageType = 'road_edge_damage';
       } else if (userText.includes('drain') || userText.includes('manhole')) {
         damageType = 'drainage_damage';
-      } else {
+      } else if (userText.includes('pothole') || userText.includes('crater') || userText.includes('cavity') || userText.includes('pit')) {
         damageType = 'pothole';
+      } else {
+        // Ambiguous / uncertain road image without verified defect:
+        // Do NOT force Pothole! Do NOT invent 90% confidence!
+        return {
+          validRoadDamage: false,
+          classification: 'INVALID_EVIDENCE',
+          damageType: 'other',
+          severity: 'low',
+          confidence: 0,
+          visibleDamage: false,
+          roadSafetyRisk: 0,
+          description: 'UNCERTAIN ROAD EVIDENCE: The uploaded photograph does not show an identifiable supported road-safety defect (Pothole, Water Logging, Surface Cracking, Edge Dropping, or Drain/Manhole Damage).',
+          recommendedAction: 'No civil action required. Verification failed due to ambiguous evidence.',
+          cancellationReason: 'Image evidence is ambiguous or does not show a supported road defect.',
+          imageQuality: {
+            isAcceptable: false,
+            isBlurry: false,
+            isTooDark: false,
+            hasRoadVisible: true,
+            qualityScore: 30,
+            warningMessage: 'Ambiguous road surface evidence. No supported defect verified.',
+          },
+        };
       }
     }
 
-    // Deterministic severity and roadSafetyRisk based on image defect
+    // Deterministic severity and roadSafetyRisk based on image defect and stable fingerprint
+    let hashVal = 0;
+    for (let i = 0; i < imageContext.length; i++) {
+      hashVal = ((hashVal << 5) - hashVal) + imageContext.charCodeAt(i);
+      hashVal |= 0;
+    }
+    hashVal = Math.abs(hashVal);
+
     let severity: AIAnalysisOutput['severity'] = 'medium';
     let roadSafetyRisk = 55;
     let confidence = 0.88;
 
     if (damageType === 'pothole') {
-      if (imageContext.includes('deep') || imageContext.includes('crater') || imageContext.includes('severe')) {
+      if (imageContext.includes('deep') || imageContext.includes('crater') || imageContext.includes('severe') || imageContext.includes('critical')) {
         severity = 'critical';
         roadSafetyRisk = 88;
         confidence = 0.94;
-      } else {
+      } else if (imageContext.includes('cluster') || imageContext.includes('multiple') || imageContext.includes('potholes')) {
         severity = 'high';
-        roadSafetyRisk = 72;
-        confidence = 0.90;
+        roadSafetyRisk = 78;
+        confidence = 0.91;
+      } else if (imageContext.includes('minor') || imageContext.includes('small') || imageContext.includes('shallow')) {
+        severity = 'medium';
+        roadSafetyRisk = 55;
+        confidence = 0.86;
+      } else {
+        // Deterministic analysis from stable image fingerprint (never Math.random() or timestamps)
+        // Same image -> identical hashVal -> identical severity & risk
+        // Different images -> differing hashVal -> dynamically differing risk
+        const variants = [
+          { severity: 'high' as const, roadSafetyRisk: 74, confidence: 0.90 },
+          { severity: 'medium' as const, roadSafetyRisk: 62, confidence: 0.88 },
+          { severity: 'critical' as const, roadSafetyRisk: 86, confidence: 0.93 },
+          { severity: 'high' as const, roadSafetyRisk: 70, confidence: 0.89 },
+        ];
+        const selected = variants[hashVal % variants.length];
+        severity = selected.severity;
+        roadSafetyRisk = selected.roadSafetyRisk;
+        confidence = selected.confidence;
       }
     } else if (damageType === 'waterlogging') {
       severity = 'high';
@@ -209,28 +299,59 @@ export class DemoAIProvider implements AIProvider {
     const after = (input.afterImageUrl || '').toLowerCase();
     const before = (input.beforeImageUrl || '').toLowerCase();
 
-    // Check if after image is identical to before (no work done) or contains non-road content
+    // 1. Check if after image contains non-road / unrelated subjects
     const nonRoadKeywords = [
-      'id_card', 'idcard', 'student', 'classroom', 'aadhaar', 'license', 'certificate',
-      'person', 'selfie', 'face', 'human', 'boy', 'girl', 'man', 'woman', 'chest', 'torso',
-      'setup', 'food', 'animal', 'indoor', 'screenshot', 'document', 'invalid', 'unrelated', 'fake'
+      'id_card', 'idcard', 'id-card', 'student', 'college', 'school', 'classroom',
+      'aadhaar', 'adhaar', 'pan_card', 'pancard', 'license', 'certificate', 'marksheet',
+      'chess', 'game', 'board', 'pawn', 'king', 'queen', 'knight', 'bishop', 'checkers',
+      'poster', 'banner', 'flyer', 'billboard', 'hoarding', 'ad', 'advertisement',
+      'qr', 'qrcode', 'qr_code', 'qr-code', 'barcode', 'code',
+      'screenshot', 'screen', 'display', 'monitor', 'tv',
+      'product', 'item', 'package', 'packaging', 'bottle', 'can', 'box',
+      'portrait', 'person', 'selfie', 'face', 'human', 'boy', 'girl', 'man', 'woman',
+      'crowd', 'people', 'friend', 'chest', 'torso', 'body', 'hand', 'leg', 'setup',
+      'child', 'children',
+      'cat', 'dog', 'pet', 'animal', 'bird', 'food', 'dish', 'meal',
+      'indoor', 'interior', 'room', 'furniture', 'office', 'laptop', 'phone', 'desk',
+      'cartoon', 'anime', 'avatar', 'drawing', 'painting', 'sketch',
+      'religious', 'god', 'deity', 'temple', 'mandir', 'pooja', 'idol',
+      'invalid', 'non-road', 'nonroad', 'random', 'unrelated', 'fake'
     ];
     const afterTokens = after.replace(/[^a-z0-9]/g, ' ').split(/\s+/).filter(Boolean);
-    const isMismatched = nonRoadKeywords.some((kw) => {
-      if (kw.length <= 4 || ['person', 'human', 'face', 'setup', 'chest', 'torso', 'body'].includes(kw)) {
+    const hasNonRoadAfter = nonRoadKeywords.some((kw) => {
+      if (kw.length <= 4 || ['person', 'human', 'face', 'setup', 'chest', 'torso', 'body', 'poster', 'product', 'interior', 'game', 'chess', 'board'].includes(kw)) {
         return afterTokens.includes(kw) || new RegExp(`\\b${kw}\\b`, 'i').test(after);
       }
       return after.includes(kw) || afterTokens.includes(kw);
-    }) || (after && before && after === before);
+    });
 
-    if (isMismatched) {
+    const isIdenticalUnchanged = after && before && after === before;
+
+    // Check if after image contains road evidence context
+    const roadMarkers = ['road', 'asphalt', 'pavement', 'repair', 'repaired', 'patch', 'tarmac', 'highway', 'street', 'surface', 'pothole', 'bitumen', 'macadam', 'concrete', 'overlay', 'compaction', 'evidence', 'photo-1515162816999', 'unsplash'];
+    const hasRoadMarker = roadMarkers.some((kw) => after.includes(kw) || afterTokens.includes(kw));
+
+    // If after image is invalid / non-road
+    if (hasNonRoadAfter || !hasRoadMarker) {
       return {
-        locationMatchConfidence: 22,
-        visibleImprovementScore: 18,
-        remainingDamageScore: 82,
-        overallConfidence: 91,
-        recommendation: 'NEEDS_REINSPECTION',
-        explanation: 'IMAGE EVIDENCE MISMATCH: Uploaded after-repair evidence does not match the geographic pavement location or features of the reported defect. Remediation cannot be established. Formal closure blocked; site re-inspection required.',
+        locationMatchConfidence: 0,
+        visibleImprovementScore: 0,
+        remainingDamageScore: 100,
+        overallConfidence: 5,
+        recommendation: 'REJECT',
+        explanation: 'Invalid after-repair evidence: the uploaded image does not provide a valid comparable road/repair view.',
+      };
+    }
+
+    // If identical image uploaded without repair
+    if (isIdenticalUnchanged) {
+      return {
+        locationMatchConfidence: 90,
+        visibleImprovementScore: 0,
+        remainingDamageScore: 100,
+        overallConfidence: 92,
+        recommendation: 'REJECT',
+        explanation: 'UNREPAIRED ROADWAY: After-repair photograph is identical to original citizen report. No remediation or repair work detected.',
       };
     }
 

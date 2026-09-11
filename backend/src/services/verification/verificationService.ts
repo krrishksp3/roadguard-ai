@@ -12,6 +12,18 @@ export class VerificationService {
       throw new Error(`Report with id ${reportId} not found`);
     }
 
+    if (report.status === 'CANCELLED') {
+      throw new Error('Cannot run repair verification on a cancelled report.');
+    }
+
+    // Enforce strict authority lifecycle: cannot skip Acknowledged, Field Inspection, and Repair in Progress
+    const invalidPriorStatuses = ['REPORTED', 'AI_ANALYZED', 'PRIORITY_CALCULATED', 'ASSIGNED'];
+    if (invalidPriorStatuses.includes(report.status)) {
+      throw new Error(
+        `Lifecycle order violation: Complaint must complete ACKNOWLEDGED, INSPECTION_SCHEDULED, and REPAIR_IN_PROGRESS before AI repair verification (current status: ${report.status}).`
+      );
+    }
+
     const beforeImageUrl = report.imageUrl;
     const damageType = report.damageType;
     const originalSeverity = report.severity;
@@ -51,25 +63,47 @@ export class VerificationService {
       },
     });
 
-    // Update report status to AI_VERIFIED
-    await prisma.roadReport.update({
-      where: { id: reportId },
-      data: {
-        status: 'AI_VERIFIED',
-        repairAfterImageUrl: afterImageUrl,
-      },
-    });
+    const isPassed = aiResult.recommendation === 'PASS';
 
-    // Add to timeline
-    await prisma.statusTimelineEvent.create({
-      data: {
-        reportId,
-        status: 'AI_VERIFIED',
-        label: 'AI Repair Verification Completed',
-        description: `Visual inspection score: ${aiResult.visibleImprovementScore}/100. AI Recommendation: ${aiResult.recommendation}.`,
-        notes: aiResult.explanation,
-      },
-    });
+    // If passed and in repair phase, advance to AI_VERIFIED and accept evidence
+    // If failed/rejected: DO NOT update complaint status, DO NOT mark AI_VERIFIED, DO NOT save as accepted evidence
+    if (isPassed) {
+      await prisma.roadReport.update({
+        where: { id: reportId },
+        data: {
+          status: 'AI_VERIFIED',
+          repairAfterImageUrl: afterImageUrl,
+        },
+      });
+
+      await prisma.statusTimelineEvent.create({
+        data: {
+          reportId,
+          status: 'AI_VERIFIED',
+          label: 'AI Repair Verification Completed',
+          description: `Visual inspection score: ${aiResult.visibleImprovementScore}/100. AI Recommendation: PASS. Pending Executive Engineer final sign-off.`,
+          notes: aiResult.explanation,
+        },
+      });
+    } else {
+      // Revert/discard pending invalid after-image from report evidence
+      await prisma.roadReport.update({
+        where: { id: reportId },
+        data: {
+          repairAfterImageUrl: null,
+        },
+      });
+
+      await prisma.statusTimelineEvent.create({
+        data: {
+          reportId,
+          status: report.status,
+          label: 'AI Repair Audit Rejected Evidence',
+          description: aiResult.explanation,
+          notes: 'Remediation could not be established. Re-upload valid comparable evidence.',
+        },
+      });
+    }
 
     return verification;
   }
