@@ -1,7 +1,34 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { AIProvider, DamageAnalysisInput, VerificationInput } from './AIProvider';
 import { AIAnalysisOutput, AIVerificationOutput } from './schemas';
+
+interface RoadFixtureSpec {
+  name: string;
+  size: number;
+  sha256Prefix: string;
+  damageType: AIAnalysisOutput['damageType'];
+}
+
+const KNOWN_ROAD_FIXTURES: RoadFixtureSpec[] = [
+  { name: 'large-road-pothole.jpg', size: 436636, sha256Prefix: '58f69eaaf92b', damageType: 'pothole' },
+  { name: 'potholes-on-road.jpg', size: 419534, sha256Prefix: '8472e54a6be2', damageType: 'pothole' },
+  { name: 'potholes-bengaluru-road.jpg', size: 720454, sha256Prefix: '748a0856b87e', damageType: 'pothole' },
+  { name: 'driving-through-potholes.jpg', size: 456933, sha256Prefix: '3d341f4da8d8', damageType: 'pothole' },
+  { name: 'pothole-reference.jpg', size: 129857, sha256Prefix: 'cb063df0b5b7', damageType: 'pothole' },
+  { name: 'severe-damage-reference.jpg', size: 25368, sha256Prefix: '1ee7ca2544d8', damageType: 'pothole' },
+  { name: 'pothole-evidence.svg', size: 4805, sha256Prefix: 'dd9e3d386814', damageType: 'pothole' },
+  { name: 'waterlogging-reference.jpg', size: 478881, sha256Prefix: '6a26492c0aba', damageType: 'waterlogging' },
+  { name: 'waterlogged-pothole.jpg', size: 385804, sha256Prefix: '2ce2559b0709', damageType: 'waterlogging' },
+  { name: 'waterlogging-evidence.svg', size: 3701, sha256Prefix: '0c90caf5e06f', damageType: 'waterlogging' },
+  { name: 'surface-deterioration-reference.jpg', size: 234346, sha256Prefix: '8cebab1aa203', damageType: 'surface_deterioration' },
+  { name: 'crack-evidence.svg', size: 3233, sha256Prefix: 'f54fe6fff2dc', damageType: 'crack' },
+  { name: 'road-edge-reference.jpg', size: 165358, sha256Prefix: '00d305986298', damageType: 'road_edge_damage' },
+  { name: 'edge-damage-evidence.svg', size: 2889, sha256Prefix: 'ed9bfba5f80e', damageType: 'road_edge_damage' },
+  { name: 'repaired-road-patch.jpg', size: 385642, sha256Prefix: '8dcc673a4518', damageType: 'pothole' },
+  { name: 'repaired-road-evidence.svg', size: 3518, sha256Prefix: 'd2796df2b1d8', damageType: 'pothole' },
+];
 
 export class DemoAIProvider implements AIProvider {
   name = 'DemoAIProvider (Offline/Hackathon Mode)';
@@ -22,34 +49,63 @@ export class DemoAIProvider implements AIProvider {
     // 2. Inspect uploaded file on disk if available
     const candidates = [
       input.imageUrl ? path.basename(input.imageUrl.split('?')[0]) : '',
-      input.imageFilename || '',
+      input.imageFilename ? path.basename(input.imageFilename.split('?')[0]) : '',
     ].filter(Boolean);
 
     let embeddedText = '';
-    // Only parse embedded human-readable text for SVG vector files
-    const isSvg = cleanFilename.endsWith('.svg') || cleanUrl.endsWith('.svg');
-    if (isSvg) {
-      for (const name of candidates) {
-        const searchPaths = [
-          path.resolve(__dirname, '../../../uploads', name),
-          path.resolve(__dirname, '../../uploads', name),
-          path.resolve(__dirname, '../../../uploads/demo', name),
-          path.resolve(process.cwd(), 'uploads', name),
-          path.resolve(process.cwd(), 'uploads/demo', name),
-        ];
+    let fileBuffer: Buffer | null = null;
+    let matchedRoadFixture: RoadFixtureSpec | null = null;
 
-        for (const p of searchPaths) {
-          if (fs.existsSync(p)) {
-            try {
-              embeddedText = fs.readFileSync(p, 'utf8').slice(0, 8192).toLowerCase();
-              break;
-            } catch {
-              // Ignore file read error
-            }
+    const searchDirs = [
+      path.resolve(__dirname, '../../../uploads'),
+      path.resolve(__dirname, '../../uploads'),
+      path.resolve(__dirname, '../../../uploads/demo'),
+      path.resolve(__dirname, '../../uploads/demo'),
+      path.resolve(process.cwd(), 'uploads'),
+      path.resolve(process.cwd(), 'uploads/demo'),
+      path.resolve(__dirname, '../../../../frontend/public/demo-evidence'),
+      path.resolve(process.cwd(), '../frontend/public/demo-evidence'),
+      path.resolve(process.cwd(), 'frontend/public/demo-evidence'),
+    ];
+
+    for (const name of candidates) {
+      for (const dir of searchDirs) {
+        const p = path.join(dir, name);
+        if (fs.existsSync(p)) {
+          try {
+            fileBuffer = fs.readFileSync(p);
+            break;
+          } catch {
+            // Ignore file read error
           }
         }
-        if (embeddedText) break;
       }
+      if (fileBuffer) break;
+    }
+
+    let isValidImageBinary = false;
+    if (fileBuffer && fileBuffer.length >= 16) {
+      const fileSize = fileBuffer.length;
+      const sha256Prefix = crypto.createHash('sha256').update(fileBuffer).digest('hex').slice(0, 12);
+
+      // Check if file matches known road defect fixtures
+      for (const fix of KNOWN_ROAD_FIXTURES) {
+        if (fileSize === fix.size && sha256Prefix === fix.sha256Prefix) {
+          matchedRoadFixture = fix;
+          break;
+        }
+      }
+
+      // Check binary image signatures (JPEG, PNG, WebP, SVG)
+      const isJpeg = fileBuffer[0] === 0xff && fileBuffer[1] === 0xd8;
+      const isPng = fileBuffer[0] === 0x89 && fileBuffer[1] === 0x50 && fileBuffer[2] === 0x4e && fileBuffer[3] === 0x47;
+      const isWebp = fileBuffer.length >= 12 && fileBuffer.slice(8, 12).toString() === 'WEBP';
+      const isSvgFile = fileBuffer.slice(0, 128).toString().includes('<svg');
+      isValidImageBinary = isJpeg || isPng || isWebp || isSvgFile;
+
+      // Extract printable ascii text from first 8192 bytes
+      const slice = fileBuffer.slice(0, 8192);
+      embeddedText = slice.toString('latin1').replace(/[^a-zA-Z0-9_\-\s]/g, ' ').toLowerCase();
     }
 
     const normalizedTokens = `${cleanFilename} ${cleanUrl} ${embeddedText}`
@@ -85,6 +141,8 @@ export class DemoAIProvider implements AIProvider {
       // Religious & Non-road Photos
       'religious', 'god', 'deity', 'temple', 'mandir', 'pooja', 'idol', 'church', 'mosque', 'prayer',
       'krishna', 'radha', 'shiva', 'jesus', 'buddha', 'ganesha',
+      // Nature / Non-road
+      'tree', 'park', 'garden', 'forest', 'flower', 'plant',
       // Explicit invalid markers
       'invalid', 'non-road', 'nonroad', 'non_road', 'random', 'unrelated', 'fake', 'sample_id', 'dummy'
     ];
@@ -146,14 +204,28 @@ export class DemoAIProvider implements AIProvider {
       generalRoadKeywords.some((kw) => tokenSet.has(kw) || normalizedText.includes(` ${kw} `)) ||
       tokenSet.has('road');
 
+    // Camera / Upload evidence check
+    const hasImageExtension = /\.(jpe?g|png|webp|svg|heic)$/i.test(rawFilename) || /\.(jpe?g|png|webp|svg|heic)$/i.test(rawUrl);
+    const isCameraOrUpload =
+      /^img[_\-0-9]/i.test(rawFilename) ||
+      /^pxl[_\-0-9]/i.test(rawFilename) ||
+      /^media[_\-0-9]/i.test(rawFilename) ||
+      /^dsc[_\-0-9]/i.test(rawFilename) ||
+      /^photo/i.test(rawFilename) ||
+      rawUrl.includes('/uploads/evidence-') ||
+      rawUrl.includes('/uploads/');
+
     const isRoadDamageImage =
+      !!matchedRoadFixture ||
       hasPotholeImage ||
       hasWaterlogImage ||
       hasCrackImage ||
       hasSurfaceImage ||
       hasEdgeImage ||
       hasDrainImage ||
-      hasGeneralRoad;
+      hasGeneralRoad ||
+      (isValidImageBinary && !hasExplicitNonRoadKeyword) ||
+      (isCameraOrUpload && hasImageExtension && !hasExplicitNonRoadKeyword);
 
     // 6. Enforce Road Evidence: If no recognizable road defect is present, reject immediately
     if (!isRoadDamageImage) {
@@ -181,7 +253,9 @@ export class DemoAIProvider implements AIProvider {
 
     // 7. Resolve Damage Type for Verified Road Damage Image
     let damageType: AIAnalysisOutput['damageType'] = 'pothole';
-    if (hasWaterlogImage) {
+    if (matchedRoadFixture) {
+      damageType = matchedRoadFixture.damageType;
+    } else if (hasWaterlogImage) {
       damageType = 'waterlogging';
     } else if (hasCrackImage) {
       damageType = 'crack';
@@ -194,7 +268,7 @@ export class DemoAIProvider implements AIProvider {
     } else if (hasPotholeImage) {
       damageType = 'pothole';
     } else {
-      // General road image: resolve using damageTypeHint if provided by citizen intake form
+      // General road / camera upload image: resolve using damageTypeHint if provided by citizen intake form
       const hint = (input.damageTypeHint || '').toLowerCase();
       if (['pothole', 'waterlogging', 'crack', 'surface_deterioration', 'road_edge_damage', 'drainage_damage'].includes(hint)) {
         damageType = hint as AIAnalysisOutput['damageType'];
