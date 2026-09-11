@@ -6,8 +6,15 @@ export class DemoAIProvider implements AIProvider {
 
   async analyzeRoadDamage(input: DamageAnalysisInput): Promise<AIAnalysisOutput> {
     // 1. IMAGE CONTEXT IS PRIMARY SIGNAL
-    // Extract image tokens exclusively from imageUrl and imageFilename
-    const imageContext = ((input.imageFilename || '') + ' ' + (input.imageUrl || '')).toLowerCase();
+    // Extract clean image tokens: strip domain names and brand names like "roadguard" so host URLs NEVER match "road"!
+    const cleanUrl = (input.imageUrl || '')
+      .replace(/https?:\/\/[^\/]+/gi, '')
+      .replace(/roadguard/gi, '')
+      .toLowerCase();
+    const cleanFilename = (input.imageFilename || '')
+      .replace(/roadguard/gi, '')
+      .toLowerCase();
+    const imageContext = `${cleanFilename} ${cleanUrl}`;
     
     // User text is secondary context only
     const userText = (input.description || '').toLowerCase();
@@ -35,14 +42,15 @@ export class DemoAIProvider implements AIProvider {
     const crackKeywords = ['crack', 'fracture', 'fissure', 'surface_deterioration', 'surface-deterioration', 'raveling', 'alligator', 'asphalt_peel', 'stripping', 'macadam'];
     const edgeKeywords = ['road-edge', 'road_edge', 'edge_drop', 'shoulder_damage', 'shoulder_drop', 'scour', 'edge_damage', 'berm', 'curb_break'];
     const drainKeywords = ['drain', 'drainage', 'gutter', 'manhole', 'culvert', 'catchbasin', 'storm_drain', 'sewer'];
-    const generalRoadKeywords = ['road', 'asphalt', 'pavement', 'highway', 'street', 'lane', 'tar', 'bitumen', 'carriageway', 'chungi', 'repaired-road', 'photo-1515162816999', 'unsplash'];
+    const generalRoadKeywords = ['asphalt', 'pavement', 'highway', 'street', 'lane', 'tar', 'bitumen', 'carriageway', 'repaired-road', 'photo-1515162816999', 'unsplash'];
 
+    const hasRoadWord = (/\broad\b/i).test(cleanFilename) || (/\broad\b/i).test(cleanUrl);
     const hasPotholeImage = potholeKeywords.some((kw) => imageContext.includes(kw));
     const hasWaterlogImage = waterlogKeywords.some((kw) => imageContext.includes(kw));
     const hasCrackImage = crackKeywords.some((kw) => imageContext.includes(kw));
     const hasEdgeImage = edgeKeywords.some((kw) => imageContext.includes(kw));
     const hasDrainImage = drainKeywords.some((kw) => imageContext.includes(kw));
-    const hasGeneralRoadImage = generalRoadKeywords.some((kw) => imageContext.includes(kw));
+    const hasGeneralRoadImage = generalRoadKeywords.some((kw) => imageContext.includes(kw)) || hasRoadWord;
 
     const isRoadDamageImage = (hasPotholeImage || hasWaterlogImage || hasCrackImage || hasEdgeImage || hasDrainImage || hasGeneralRoadImage) && !hasExplicitNonRoadKeyword;
 
