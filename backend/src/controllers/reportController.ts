@@ -183,94 +183,6 @@ export class ReportController {
         data.imageFilename
       );
 
-      // CASE A: Same image + matching location -> DUPLICATE -> do not create second active report
-      if (duplicateCheck.isDuplicate && duplicateCheck.duplicateOfId) {
-        const duplicateReport = await prisma.roadReport.create({
-          data: {
-            id: reportId,
-            clientReportId: data.clientReportId,
-            userId,
-            imageUrl: data.imageUrl,
-            latitude: data.latitude,
-            longitude: data.longitude,
-            address: data.address || `${jurisdiction.roadSegmentName || 'Meerut Road Network'}, Meerut, UP`,
-            description: data.description,
-            damageType: aiResult.damageType,
-            severity: aiResult.severity,
-            status: 'CANCELLED',
-            roadSegmentId: null,
-            departmentId: null,
-            riskScore: 0,
-            isDuplicate: true,
-            duplicateOfId: duplicateCheck.duplicateOfId,
-            isRecurring: false,
-            slaTargetHours: 0,
-            slaDueAt: new Date(),
-            isOverdue: false,
-            aiAnalysis: {
-              create: {
-                damageType: aiResult.damageType,
-                severity: aiResult.severity,
-                confidence: aiResult.confidence,
-                visibleDamage: true,
-                roadSafetyRisk: 0,
-                description: `DUPLICATE EVIDENCE: This image has already been submitted by another citizen under active complaint ${duplicateCheck.duplicateOfId}.`,
-                recommendedAction: `No additional civil action required. Track reference complaint ${duplicateCheck.duplicateOfId}.`,
-                isAcceptableQuality: true,
-                qualityScore: 90,
-                isBlurry: false,
-                isTooDark: false,
-                hasRoadVisible: true,
-              },
-            },
-            priorityAssessment: {
-              create: {
-                overallScore: 0,
-                riskLevel: 'LOW',
-                severityScore: 0,
-                safetyRiskScore: 0,
-                densityScore: 0,
-                roadImportanceScore: 0,
-                recurrenceScore: 0,
-                slaUrgencyScore: 0,
-                explanation: JSON.stringify([`Duplicate report of active complaint ${duplicateCheck.duplicateOfId}.`]),
-              },
-            },
-            timeline: {
-              create: [
-                {
-                  status: 'REPORTED',
-                  label: 'Report Submitted',
-                  description: 'Citizen submitted photograph for intake verification.',
-                },
-                {
-                  status: 'CANCELLED',
-                  label: 'Report Cancelled — Duplicate Evidence',
-                  description: `Duplicate road-damage evidence detected. This image has already been submitted by another citizen under reference complaint ${duplicateCheck.duplicateOfId}.`,
-                },
-              ],
-            },
-          },
-          include: {
-            aiAnalysis: true,
-            priorityAssessment: true,
-            timeline: { orderBy: { timestamp: 'asc' } },
-            department: true,
-            roadSegment: true,
-          },
-        });
-
-        res.status(200).json({
-          success: true,
-          isDuplicate: true,
-          duplicateOfId: duplicateCheck.duplicateOfId,
-          status: 'CANCELLED',
-          message: `Duplicate road-damage evidence detected. This image has already been submitted by another citizen. Reference complaint: ${duplicateCheck.duplicateOfId}`,
-          data: duplicateReport,
-        });
-        return;
-      }
-
       // 5. SLA Calculation
       const slaTargetHours = SLAService.getTargetHours(aiResult.severity);
       const now = new Date();
@@ -373,7 +285,9 @@ export class ReportController {
               {
                 status: 'ASSIGNED',
                 label: 'Assigned to Responsible Department',
-                description: `Automated dispatch to ${jurisdiction.departmentName || 'PWD Meerut'}.`,
+                description: duplicateCheck.isDuplicate
+                  ? `Automated dispatch to ${jurisdiction.departmentName || 'PWD Meerut'}. Linked as duplicate of active complaint #${duplicateCheck.duplicateOfId}.`
+                  : `Automated dispatch to ${jurisdiction.departmentName || 'PWD Meerut'}.`,
               },
             ],
           },
@@ -401,9 +315,16 @@ export class ReportController {
         'ASSIGNMENT'
       );
 
-      res.status(201).json({
+      const statusCode = duplicateCheck.isDuplicate ? 200 : 201;
+      res.status(statusCode).json({
         success: true,
-        message: 'Road report registered and analyzed successfully',
+        validRoadDamage: true,
+        classification: aiResult.classification,
+        isDuplicate: duplicateCheck.isDuplicate,
+        duplicateOfId: duplicateCheck.duplicateOfId,
+        message: duplicateCheck.isDuplicate
+          ? `Duplicate road-damage evidence linked to active complaint: ${duplicateCheck.duplicateOfId}`
+          : 'Road report registered and analyzed successfully',
         data: report,
       });
     } catch (error) {

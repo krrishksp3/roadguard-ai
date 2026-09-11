@@ -65,21 +65,21 @@ export class DemoAIProvider implements AIProvider {
       'id_card', 'idcard', 'id-card', 'student_id', 'student', 'college', 'school', 'classroom',
       'aadhaar', 'adhaar', 'pan_card', 'pancard', 'license', 'licence', 'certificate', 'marksheet',
       'admit_card', 'roll_no', 'campus', 'hall_ticket', 'receipt', 'invoice', 'textbook', 'notebook', 'resume', 'passport',
-      'examination', 'degree', 'diploma', 'candidate', 'university', 'curriculum',
+      'examination', 'degree', 'diploma', 'candidate', 'university', 'curriculum', 'document', 'doc', 'pdf', 'card',
       // Games & Boards
-      'chess', 'chessboard', 'chess_board', 'checkers', 'ludo', 'carrom',
+      'chess', 'chessboard', 'chess_board', 'checkers', 'ludo', 'carrom', 'game', 'board',
       // Posters / Codes / Displays
       'poster', 'movie_poster', 'billboard', 'hoarding', 'flyer', 'banner', 'advertisement',
-      'qr', 'qrcode', 'qr_code', 'barcode',
+      'qr', 'qrcode', 'qr_code', 'barcode', 'screenshot', 'screen', 'display',
       // Products / Packaging / Clothing
       'product', 'package', 'packaging', 'box', 'merchandise', 'clothing', 'shirt', 'dress',
       // People / Anatomy / Selfies
       'portrait', 'person', 'selfie', 'face', 'human', 'boy', 'girl', 'man', 'woman',
-      'crowd', 'friend', 'chest_photo', 'chest', 'torso',
-      // Animals
-      'cat', 'dog', 'pet', 'animal', 'bird',
+      'crowd', 'friend', 'chest_photo', 'chest', 'torso', 'child', 'children', 'baby', 'kid',
+      // Animals & Food
+      'cat', 'dog', 'pet', 'animal', 'bird', 'food', 'dish', 'meal',
       // Furniture & Indoor
-      'sofa', 'furniture', 'laptop',
+      'sofa', 'furniture', 'laptop', 'indoor', 'interior',
       // Graphics / Drawings
       'cartoon', 'anime', 'avatar',
       // Religious & Non-road Photos
