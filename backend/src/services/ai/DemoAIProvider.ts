@@ -26,29 +26,30 @@ export class DemoAIProvider implements AIProvider {
     ].filter(Boolean);
 
     let embeddedText = '';
-    for (const name of candidates) {
-      const searchPaths = [
-        path.resolve(__dirname, '../../../uploads', name),
-        path.resolve(__dirname, '../../uploads', name),
-        path.resolve(__dirname, '../../../uploads/demo', name),
-        path.resolve(process.cwd(), 'uploads', name),
-        path.resolve(process.cwd(), 'uploads/demo', name),
-      ];
+    // Only parse embedded human-readable text for SVG vector files
+    const isSvg = cleanFilename.endsWith('.svg') || cleanUrl.endsWith('.svg');
+    if (isSvg) {
+      for (const name of candidates) {
+        const searchPaths = [
+          path.resolve(__dirname, '../../../uploads', name),
+          path.resolve(__dirname, '../../uploads', name),
+          path.resolve(__dirname, '../../../uploads/demo', name),
+          path.resolve(process.cwd(), 'uploads', name),
+          path.resolve(process.cwd(), 'uploads/demo', name),
+        ];
 
-      for (const p of searchPaths) {
-        if (fs.existsSync(p)) {
-          try {
-            const buffer = fs.readFileSync(p);
-            // Read first 8KB of printable characters
-            const slice = buffer.slice(0, 8192);
-            embeddedText = slice.toString('latin1').replace(/[^a-zA-Z0-9_\-\s]/g, ' ').toLowerCase();
-            break;
-          } catch {
-            // Ignore file read error
+        for (const p of searchPaths) {
+          if (fs.existsSync(p)) {
+            try {
+              embeddedText = fs.readFileSync(p, 'utf8').slice(0, 8192).toLowerCase();
+              break;
+            } catch {
+              // Ignore file read error
+            }
           }
         }
+        if (embeddedText) break;
       }
-      if (embeddedText) break;
     }
 
     const normalizedTokens = `${cleanFilename} ${cleanUrl} ${embeddedText}`
@@ -61,37 +62,31 @@ export class DemoAIProvider implements AIProvider {
     // 3. Strict Non-Road / Unrelated Subject Detection
     const nonRoadKeywords = [
       // Identity & Official documents
-      'id_card', 'idcard', 'id-card', 'student', 'college', 'school', 'classroom',
+      'id_card', 'idcard', 'id-card', 'student_id', 'student', 'college', 'school', 'classroom',
       'aadhaar', 'adhaar', 'pan_card', 'pancard', 'license', 'licence', 'certificate', 'marksheet',
-      'admit_card', 'roll_no', 'campus', 'hall_ticket', 'document', 'doc', 'pdf',
-      'paper', 'receipt', 'invoice', 'form', 'textbook', 'notebook', 'resume', 'passport',
-      'identity', 'examination', 'degree', 'diploma', 'candidate', 'university', 'curriculum',
+      'admit_card', 'roll_no', 'campus', 'hall_ticket', 'receipt', 'invoice', 'textbook', 'notebook', 'resume', 'passport',
+      'examination', 'degree', 'diploma', 'candidate', 'university', 'curriculum',
       // Games & Boards
-      'chess', 'game', 'board', 'pawn', 'king', 'queen', 'knight', 'bishop', 'checkers', 'dice',
-      'ludo', 'carrom',
+      'chess', 'chessboard', 'chess_board', 'checkers', 'ludo', 'carrom',
       // Posters / Codes / Displays
-      'poster', 'banner', 'flyer', 'billboard', 'hoarding', 'ad', 'advertisement',
+      'poster', 'movie_poster', 'billboard', 'hoarding', 'flyer', 'banner', 'advertisement',
       'qr', 'qrcode', 'qr_code', 'barcode',
-      'screenshot', 'screen', 'display', 'monitor', 'tv',
-      // Products / Merchandise / Packaging
-      'product', 'item', 'package', 'packaging', 'bottle', 'can', 'box', 'merchandise',
-      'clothing', 'shirt', 'dress', 'shoe', 'bag',
+      // Products / Packaging / Clothing
+      'product', 'package', 'packaging', 'box', 'merchandise', 'clothing', 'shirt', 'dress',
       // People / Anatomy / Selfies
       'portrait', 'person', 'selfie', 'face', 'human', 'boy', 'girl', 'man', 'woman',
-      'crowd', 'profile', 'people', 'friend', 'chest', 'torso', 'body', 'hand', 'leg',
-      'child', 'children', 'baby',
-      // Animals & Food
-      'cat', 'dog', 'pet', 'animal', 'bird', 'food', 'dish', 'meal', 'fruit', 'vegetable', 'snack',
-      // Buildings & Interiors
-      'indoor', 'interior', 'room', 'bed', 'sofa', 'furniture', 'office', 'laptop', 'phone', 'desk',
-      'wall', 'ceiling', 'tile', 'door', 'window', 'kitchen', 'hallway', 'living_room',
+      'crowd', 'friend', 'chest_photo', 'chest', 'torso',
+      // Animals
+      'cat', 'dog', 'pet', 'animal', 'bird',
+      // Furniture & Indoor
+      'sofa', 'furniture', 'laptop',
       // Graphics / Drawings
-      'cartoon', 'anime', 'avatar', 'drawing', 'painting', 'sketch', 'clipart', 'illustration',
+      'cartoon', 'anime', 'avatar',
       // Religious & Non-road Photos
       'religious', 'god', 'deity', 'temple', 'mandir', 'pooja', 'idol', 'church', 'mosque', 'prayer',
       'krishna', 'radha', 'shiva', 'jesus', 'buddha', 'ganesha',
       // Explicit invalid markers
-      'invalid', 'non-road', 'nonroad', 'random', 'unrelated', 'fake', 'sample_id', 'dummy'
+      'invalid', 'non-road', 'nonroad', 'non_road', 'random', 'unrelated', 'fake', 'sample_id', 'dummy'
     ];
 
     const hasExplicitNonRoadKeyword = nonRoadKeywords.some((kw) => {
@@ -150,15 +145,21 @@ export class DemoAIProvider implements AIProvider {
       generalRoadKeywords.some((kw) => tokenSet.has(kw) || normalizedText.includes(` ${kw} `)) ||
       tokenSet.has('road');
 
-    // Check if filename is camera photo / upload (e.g. IMG_..., photo, camera, blob, evidence-...)
+    // Check if filename or URL is an uploaded photograph or road evidence
+    const hasImageExtension = /\.(jpe?g|png|webp|svg|heic)$/i.test(cleanFilename) || /\.(jpe?g|png|webp|svg|heic)$/i.test(cleanUrl);
     const isCameraUpload =
       /^img[_\-0-9]/i.test(cleanFilename) ||
       /^pxl[_\-0-9]/i.test(cleanFilename) ||
+      /^media[_\-0-9]/i.test(cleanFilename) ||
+      /^dsc[_\-0-9]/i.test(cleanFilename) ||
+      /^pic[_\-0-9]/i.test(cleanFilename) ||
       tokenSet.has('photo') ||
       tokenSet.has('camera') ||
       tokenSet.has('image') ||
       tokenSet.has('blob') ||
-      rawUrl.includes('/uploads/evidence-');
+      tokenSet.has('evidence') ||
+      rawUrl.includes('/uploads/') ||
+      hasImageExtension;
 
     // 6. Resolve Damage Type
     let damageType: AIAnalysisOutput['damageType'] = 'pothole';
