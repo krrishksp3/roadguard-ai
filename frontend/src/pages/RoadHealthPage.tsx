@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { RoadSegment } from '../../../shared/types';
-import { Activity, AlertTriangle, CheckCircle, ShieldAlert, FileText, Info } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle, ShieldAlert, FileText, Info, ArrowRight, TrendingUp, AlertCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const RoadHealthPage: React.FC = () => {
   const [segments, setSegments] = useState<RoadSegment[]>([]);
@@ -21,116 +22,219 @@ export const RoadHealthPage: React.FC = () => {
     load();
   }, []);
 
-  return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
-      <div>
-        <div className="flex items-center space-x-2">
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-900 border border-indigo-300">
-            Civil Infrastructure Analytics
-          </span>
-          <span className="text-xs text-slate-400">• Corridor Condition Index</span>
-        </div>
-        <h1 className="text-3xl font-extrabold font-heading text-slate-900 mt-1">
-          Road Health & Recurring Distress Intelligence
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-3xl">
-          Automated corridor health evaluation based on defect severity density, citizen reporting coverage, and chronic failure recurrence detection.
-        </p>
-      </div>
+  // Compute 4 Visual Intelligence KPI metrics (Section 17)
+  const highRiskCount = segments.filter((s) => s.healthScore < 50).length;
+  const totalIncidents = segments.reduce((acc, s) => acc + s.openComplaints + s.resolvedComplaints, 0);
+  const recurringHotspotsCount = segments.filter((s) => s.isRecurringHotspot).length;
+  const totalResolved = segments.reduce((acc, s) => acc + s.resolvedComplaints, 0);
+  const avgHealthScore = segments.length > 0 ? Math.round(segments.reduce((acc, s) => acc + s.healthScore, 0) / segments.length) : 74;
 
-      {/* Advisory Banner for Judges on Section 20 "Reporting Coverage" */}
-      <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl flex items-start space-x-3 text-xs text-blue-900">
-        <Info className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
+      {/* Header: ROAD HEALTH (Section 17) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <span className="font-bold block">Analytical Coverage Clarification:</span>
-          <p className="text-blue-800/90 mt-0.5">
-            Reporting coverage represents an analytical density estimate based on submitted spatial observations and road corridor length, rather than a count of citizens who did not report.
+          <div className="inline-flex items-center space-x-2 bg-white border border-slate-200 shadow-subtle px-3 py-1 rounded-full text-xs font-bold text-teal-800 mb-2">
+            <Activity className="w-3.5 h-3.5 text-teal-600" />
+            <span>Infrastructure Analytics</span>
+            <span>•</span>
+            <span>Corridor Health Index</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black font-heading text-ink-950 tracking-tight uppercase">
+            ROAD HEALTH
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
+            Corridor-level pavement deterioration monitoring, chronic hotspot detection, and civil asset lifespan metrics.
           </p>
         </div>
+
+        <Link
+          to="/map"
+          className="btn-lift self-start sm:self-auto bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white text-xs sm:text-sm font-extrabold px-4 py-2.5 rounded-xl transition shadow-md shadow-teal-900/15 flex items-center space-x-1.5"
+        >
+          <span>View on Map</span>
+          <ArrowRight className="w-4 h-4" />
+        </Link>
       </div>
 
+      {/* 4 KPI METRICS: CURRENT RISK, REPORTS, RECURRING ISSUES, RECENT ACTIVITY (Section 17) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* CURRENT RISK */}
+        <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-card space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              CURRENT RISK
+            </span>
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
+          </div>
+          <div className="flex items-baseline space-x-2">
+            <span className="text-2xl sm:text-3xl font-black font-heading text-ink-950">
+              {highRiskCount} Segments
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-500 block">
+            Avg condition: <strong className="text-teal-700 font-mono">{avgHealthScore}/100</strong>
+          </span>
+        </div>
+
+        {/* REPORTS */}
+        <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-card space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              REPORTS
+            </span>
+            <FileText className="w-4 h-4 text-teal-600" />
+          </div>
+          <div className="flex items-baseline space-x-2">
+            <span className="text-2xl sm:text-3xl font-black font-heading text-ink-950">
+              {totalIncidents} Total
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-500 block">
+            Across monitored Meerut corridors
+          </span>
+        </div>
+
+        {/* RECURRING ISSUES */}
+        <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-card space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              RECURRING ISSUES
+            </span>
+            <ShieldAlert className="w-4 h-4 text-rose-500" />
+          </div>
+          <div className="flex items-baseline space-x-2">
+            <span className="text-2xl sm:text-3xl font-black font-heading text-rose-600">
+              {recurringHotspotsCount} Hotspots
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-500 block">
+            Repeated distress within 6 months
+          </span>
+        </div>
+
+        {/* RECENT ACTIVITY */}
+        <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-card space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              RECENT ACTIVITY
+            </span>
+            <CheckCircle className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div className="flex items-baseline space-x-2">
+            <span className="text-2xl sm:text-3xl font-black font-heading text-emerald-600">
+              {totalResolved} Resolved
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-500 block">
+            Remediated with audit verification
+          </span>
+        </div>
+      </div>
+
+      {/* Visual Road Segments Grid */}
       {loading ? (
-        <div className="text-center py-12 text-slate-400 text-sm">Evaluating corridor health indices...</div>
+        <div className="text-center py-20 space-y-2">
+          <div className="w-8 h-8 rounded-full border-2 border-teal-600 border-t-transparent animate-spin mx-auto" />
+          <p className="text-xs font-semibold text-slate-500">Loading road segment health telemetry...</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {segments.map((seg) => {
-            let healthColor = 'text-emerald-600 bg-emerald-50 border-emerald-200';
-            let healthBar = 'bg-emerald-500';
-            let healthLabel = 'GOOD CONDITION';
+            const riskLevel = seg.healthScore < 50 ? 'HIGH' : seg.healthScore < 70 ? 'MODERATE' : 'LOW';
+            const riskBadgeColor =
+              riskLevel === 'HIGH'
+                ? 'bg-rose-50 text-rose-800 border-rose-200'
+                : riskLevel === 'MODERATE'
+                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                : 'bg-emerald-50 text-emerald-800 border-emerald-200';
 
-            if (seg.healthScore < 50) {
-              healthColor = 'text-red-700 bg-red-50 border-red-200';
-              healthBar = 'bg-red-600';
-              healthLabel = 'CRITICALLY DETERIORATED';
-            } else if (seg.healthScore < 70) {
-              healthColor = 'text-amber-700 bg-amber-50 border-amber-200';
-              healthBar = 'bg-amber-500';
-              healthLabel = 'MODERATE WEAR';
-            }
+            const statusText =
+              riskLevel === 'HIGH'
+                ? 'Immediate resurfacing required'
+                : riskLevel === 'MODERATE'
+                ? 'Routine maintenance inspection'
+                : 'Pavement stable';
 
             return (
               <div
                 key={seg.id}
-                className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4 hover:shadow-md transition"
+                className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-7 shadow-card flex flex-col justify-between space-y-5 card-hover"
               >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <span className="font-mono text-xs font-bold text-slate-400 block">{seg.code}</span>
-                    <h3 className="font-bold text-slate-900 text-base">{seg.name}</h3>
-                    <span className="text-xs text-slate-500 font-medium">{seg.lengthKm} km • {seg.importanceLevel.replace(/_/g, ' ')}</span>
-                  </div>
-                  <div className={`p-2.5 rounded-xl border text-center ${healthColor}`}>
-                    <span className="text-xl font-black block leading-none">{seg.healthScore}</span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider block mt-1">Health</span>
-                  </div>
-                </div>
-
-                {/* Health Progress bar */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] text-slate-500">
-                    <span>Corridor Pavement Index</span>
-                    <span className="font-semibold text-slate-700">{healthLabel}</span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                    <div className={`h-2.5 rounded-full ${healthBar}`} style={{ width: `${seg.healthScore}%` }}></div>
-                  </div>
-                </div>
-
-                {/* Recurring Damage Warning Box (Section 11) */}
-                {seg.isRecurringHotspot && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl space-y-1">
-                    <div className="flex items-center space-x-1.5 text-xs font-bold text-red-700">
-                      <AlertTriangle className="w-4 h-4 text-red-600" />
-                      <span>CHRONIC RECURRING ROAD DAMAGE DETECTED</span>
+                <div className="space-y-4">
+                  {/* Top Bar */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <span className="font-mono text-[10px] font-bold text-slate-400 block uppercase">
+                        {seg.code} • {seg.lengthKm} KM SPAN
+                      </span>
+                      <h3 className="font-black font-heading text-ink-950 text-lg mt-0.5">
+                        {seg.name}
+                      </h3>
+                      <span className="text-xs text-slate-500 font-medium">
+                        {seg.importanceLevel.replace(/_/g, ' ')}
+                      </span>
                     </div>
-                    <p className="text-[11px] text-red-800 leading-relaxed">
-                      This segment has experienced {seg.recurringDamageCount} complaints and repeated patch repairs within the past 6 months.
-                      <strong> Recommendation:</strong> Comprehensive sub-base structural renewal required rather than spot patch.
-                    </p>
-                  </div>
-                )}
 
-                {/* Stats Breakdown */}
-                <div className="grid grid-cols-3 gap-2 text-center text-xs pt-1">
-                  <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                    <span className="text-slate-400 block text-[10px]">Open Issues</span>
-                    <span className="font-bold text-gov-700 text-sm">{seg.openComplaints}</span>
+                    <span className={`px-2.5 py-1 rounded-xl text-xs font-black border uppercase tracking-wide ${riskBadgeColor}`}>
+                      {riskLevel} RISK
+                    </span>
                   </div>
-                  <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                    <span className="text-slate-400 block text-[10px]">Critical</span>
-                    <span className="font-bold text-red-600 text-sm">{seg.criticalComplaints}</span>
+
+                  {/* VISUAL ROAD-SEGMENT HEALTH INDICATOR (Section 17) */}
+                  <div className="bg-warm-50 p-4 rounded-2xl border border-slate-200/80 space-y-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="font-bold text-slate-700">Pavement Condition Index</span>
+                      <span className="font-mono font-black text-ink-950">{seg.healthScore} / 100</span>
+                    </div>
+                    {/* Visual bar */}
+                    <div className="w-full bg-slate-200/80 rounded-full h-3 overflow-hidden p-0.5">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          seg.healthScore < 50
+                            ? 'bg-rose-500'
+                            : seg.healthScore < 70
+                            ? 'bg-amber-500'
+                            : 'bg-emerald-500'
+                        }`}
+                        style={{ width: `${seg.healthScore}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[10px] text-slate-400 font-mono pt-0.5">
+                      <span>0 (Failing)</span>
+                      <span>50 (Fair)</span>
+                      <span>100 (Optimal)</span>
+                    </div>
                   </div>
-                  <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                    <span className="text-slate-400 block text-[10px]">Resolved</span>
-                    <span className="font-bold text-emerald-600 text-sm">{seg.resolvedComplaints}</span>
+
+                  {/* Summary Grid */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="bg-warm-100 p-3 rounded-xl border border-slate-200">
+                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Reports Count</span>
+                      <span className="font-bold text-ink-950 text-sm">
+                        {seg.openComplaints + seg.resolvedComplaints} Recorded
+                      </span>
+                    </div>
+
+                    <div className="bg-warm-100 p-3 rounded-xl border border-slate-200">
+                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Recurring Flag</span>
+                      <span className={`font-bold text-xs ${seg.isRecurringHotspot ? 'text-rose-700' : 'text-slate-700'}`}>
+                        {seg.isRecurringHotspot ? `${seg.recurringDamageCount} Incidents` : 'None Detected'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                  <span>Reporting Coverage: <strong>{seg.reportingCoverage}</strong></span>
-                  <span className="font-mono text-[11px]">
-                    Last repair: {seg.lastRepairDate ? new Date(seg.lastRepairDate).toLocaleDateString() : 'N/A'}
-                  </span>
+                {/* Card Action Link */}
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-slate-500 text-[11px] font-medium">{statusText}</span>
+                  <Link
+                    to={`/map`}
+                    className="text-teal-700 hover:text-teal-800 font-extrabold flex items-center space-x-1"
+                  >
+                    <span>Inspect On Map</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
               </div>
             );

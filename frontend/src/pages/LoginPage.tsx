@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Shield, Lock, Mail, ArrowRight, UserCheck } from 'lucide-react';
+import { Shield, Lock, Mail, ArrowRight, UserCheck, AlertCircle } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -39,45 +39,46 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-200 p-8 space-y-6">
+      <div className="max-w-md w-full bg-white rounded-3xl shadow-card border border-slate-200/90 p-8 sm:p-9 space-y-6">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 bg-gov-700 text-white rounded-xl mx-auto flex items-center justify-center shadow-md">
-            <Shield className="w-7 h-7" />
+          <div className="w-12 h-12 bg-gradient-to-br from-teal-600 to-emerald-600 text-white rounded-2xl mx-auto flex items-center justify-center shadow-md shadow-teal-900/15">
+            <Shield className="w-6 h-6 text-white" />
           </div>
-          <h2 className="text-2xl font-bold font-heading text-slate-900">Sign in to ROADGUARD AI</h2>
-          <p className="text-xs text-slate-500">Access citizen reporting or authority management console</p>
+          <h2 className="text-2xl font-black font-heading text-ink-950 tracking-tight">Sign in to ROADGUARD AI</h2>
+          <p className="text-xs text-slate-500">Access citizen reporting or authority operations console</p>
         </div>
 
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs font-medium">
-            {error}
+          <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-xs font-medium flex items-center space-x-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{error}</span>
           </div>
         )}
 
         {/* 1-Click Quick Demo Login Pill Buttons for Judges */}
         <div className="space-y-2">
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">
             Quick Fill Demo Credentials
           </p>
           <div className="grid grid-cols-3 gap-2">
             <button
               type="button"
               onClick={() => fillDemo('citizen@roadguard.demo', 'citizen123')}
-              className="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-semibold rounded-lg transition border border-slate-200 text-center"
+              className="px-2 py-2 bg-warm-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold rounded-xl transition border border-slate-200 text-center"
             >
               Citizen
             </button>
             <button
               type="button"
               onClick={() => fillDemo('authority@roadguard.demo', 'authority123')}
-              className="px-2 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 text-[11px] font-semibold rounded-lg transition border border-amber-200 text-center"
+              className="px-2 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 text-[11px] font-bold rounded-xl transition border border-amber-200 text-center"
             >
               Authority
             </button>
             <button
               type="button"
               onClick={() => fillDemo('admin@roadguard.demo', 'admin123')}
-              className="px-2 py-1.5 bg-gov-50 hover:bg-gov-100 text-gov-800 text-[11px] font-semibold rounded-lg transition border border-gov-200 text-center"
+              className="px-2 py-2 bg-teal-50 hover:bg-teal-100 text-teal-900 text-[11px] font-bold rounded-xl transition border border-teal-200 text-center"
             >
               Admin
             </button>
@@ -86,31 +87,31 @@ export const LoginPage: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
-                className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gov-700"
+                className="w-full pl-10 pr-3.5 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 transition"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Password</label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gov-700"
+                className="w-full pl-10 pr-3.5 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-teal-600 focus:ring-1 focus:ring-teal-600 transition"
               />
             </div>
           </div>
@@ -118,7 +119,7 @@ export const LoginPage: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gov-700 hover:bg-gov-800 text-white font-bold py-2.5 rounded-xl shadow-md transition flex items-center justify-center space-x-2 text-sm disabled:opacity-50"
+            className="btn-lift w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-extrabold py-3.5 rounded-xl shadow-md shadow-teal-900/15 transition flex items-center justify-center space-x-2 text-xs sm:text-sm uppercase tracking-wider disabled:opacity-50"
           >
             <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
             <ArrowRight className="w-4 h-4" />
@@ -127,7 +128,7 @@ export const LoginPage: React.FC = () => {
 
         <p className="text-center text-xs text-slate-500">
           Don't have an account?{' '}
-          <Link to="/register" className="text-gov-700 font-semibold hover:underline">
+          <Link to="/register" className="text-teal-700 font-bold hover:underline">
             Create citizen account
           </Link>
         </p>

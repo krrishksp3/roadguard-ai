@@ -3,6 +3,7 @@ import { SyncStatus } from '../../../shared/types';
 
 export interface OfflineDraftReport {
   id: string; // clientReportId (UUID)
+  userId?: string;
   imageUrl: string; // data URL or local URL for preview
   photoBase64?: string; // base64 data to upload when reconnected
   evidenceSource: 'USER_UPLOADED' | 'LICENSED_EXTERNAL' | 'DEMO_SYNTHETIC';
@@ -55,9 +56,9 @@ export const offlineSync = {
     return () => subscribers.delete(fn);
   },
 
-  async getPendingCount(): Promise<number> {
+  async getPendingCount(userId?: string): Promise<number> {
     try {
-      const reports = await this.getPendingReports();
+      const reports = await this.getPendingReports(userId);
       return reports.filter((r) => r.status !== 'SYNCED').length;
     } catch {
       return 0;
@@ -72,7 +73,7 @@ export const offlineSync = {
       const req = store.put(draft);
 
       req.onsuccess = async () => {
-        const count = await this.getPendingCount();
+        const count = await this.getPendingCount(draft.userId);
         notifySubscribers(count, isSyncingActive);
         resolve();
       };
@@ -80,10 +81,10 @@ export const offlineSync = {
     });
   },
 
-  async getPendingReports(): Promise<OfflineDraftReport[]> {
+  async getPendingReports(userId?: string): Promise<OfflineDraftReport[]> {
     try {
       const db = await openDB();
-      return new Promise((resolve, reject) => {
+      const all: OfflineDraftReport[] = await new Promise((resolve, reject) => {
         const tx = db.transaction(STORE_NAME, 'readonly');
         const store = tx.objectStore(STORE_NAME);
         const req = store.getAll();
@@ -91,6 +92,10 @@ export const offlineSync = {
         req.onsuccess = () => resolve(req.result || []);
         req.onerror = () => reject(req.error);
       });
+      if (userId) {
+        return all.filter((r) => r.userId === userId);
+      }
+      return all;
     } catch {
       return [];
     }
@@ -147,12 +152,12 @@ export const offlineSync = {
   /**
    * Synchronize pending reports when internet connectivity is restored
    */
-  async syncPendingReports(): Promise<{ synced: number; failed: number }> {
+  async syncPendingReports(userId?: string): Promise<{ synced: number; failed: number }> {
     if (isSyncingActive || !navigator.onLine) {
       return { synced: 0, failed: 0 };
     }
 
-    const pending = await this.getPendingReports();
+    const pending = await this.getPendingReports(userId);
     const activeQueue = pending.filter((r) => r.status === 'PENDING_SYNC' || r.status === 'FAILED');
 
     if (activeQueue.length === 0) {

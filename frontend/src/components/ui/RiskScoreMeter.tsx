@@ -65,7 +65,7 @@ export const RiskScoreMeter: React.FC<RiskScoreMeterProps> = ({ score, priorityA
   }
 
   return (
-    <div className={`p-4 rounded-xl border ${color}`}>
+    <div className={`p-5 rounded-2xl border shadow-subtle ${color}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-2">
           {score <= 0 ? (

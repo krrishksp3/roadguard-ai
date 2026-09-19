@@ -167,7 +167,9 @@ export const api = {
   },
 
   async getReportById(id: string): Promise<RoadReport> {
-    const res = await fetch(`${API_BASE_URL}/reports/${id}`);
+    const res = await fetch(`${API_BASE_URL}/reports/${id}`, {
+      headers: getAuthHeaders(),
+    });
     const json = await res.json();
     if (!res.ok) throw new Error(json.message || 'Failed to fetch report');
     return normalizeReport(json.data);

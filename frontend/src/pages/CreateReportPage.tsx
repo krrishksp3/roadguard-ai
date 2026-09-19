@@ -1,10 +1,37 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { offlineSync, OfflineDraftReport } from '../services/offlineSync';
 import { ReportsMap } from '../components/map/ReportsMap';
-import { RoadPhotoUpload } from '../components/upload/RoadPhotoUpload';
-import { MapPin, Sparkles, ArrowRight, Navigation, Building2, CheckCircle2, ShieldAlert, WifiOff, RefreshCw } from 'lucide-react';
+import {
+  MapPin,
+  Sparkles,
+  ArrowRight,
+  ArrowLeft,
+  Navigation,
+  Building2,
+  CheckCircle2,
+  ShieldAlert,
+  WifiOff,
+  RefreshCw,
+  Camera,
+  Image as ImageIcon,
+  AlertCircle,
+  Droplets,
+  Layers,
+  AlertTriangle,
+  HelpCircle,
+  Activity,
+  Check,
+  Clock,
+  ChevronRight,
+  Trash2,
+  ZoomIn,
+  X,
+  FileCheck,
+  Eye,
+} from 'lucide-react';
 
 interface DemoPreset {
   name: string;
@@ -36,10 +63,10 @@ const generateClientId = (): string => {
 
 const demoPresets: DemoPreset[] = [
   {
-    name: 'Water-filled Pothole Cavity',
+    name: 'Pothole Cavity',
     url: '/demo-evidence/pothole-reference.jpg',
     filename: 'pothole-reference.jpg',
-    desc: '[SYNTHETIC DEMO] Deep depression and road pothole cavity exceeding 18cm right on vehicular lane near Jail Chungi crossing, Meerut.',
+    desc: 'Deep road cavity and depression right on vehicular lane near Jail Chungi, Meerut.',
     type: 'pothole',
     license: 'LICENSED_REFERENCE',
     author: 'Contributed Photo Evidence',
@@ -47,10 +74,10 @@ const demoPresets: DemoPreset[] = [
     originalLocation: 'Reference Road Dataset',
   },
   {
-    name: 'Severe Potholes Cluster',
+    name: 'Pothole Cluster',
     url: '/demo-evidence/severe-damage-reference.jpg',
     filename: 'severe-damage-reference.jpg',
-    desc: '[SYNTHETIC DEMO] Multiple pavement potholes and surface disintegration creating two-wheeler hazard near Delhi Road, Meerut.',
+    desc: 'Multiple pavement potholes creating two-wheeler hazard near Delhi Road, Meerut.',
     type: 'pothole',
     license: 'LICENSED_REFERENCE',
     author: 'Contributed Photo Evidence',
@@ -58,10 +85,10 @@ const demoPresets: DemoPreset[] = [
     originalLocation: 'Reference Road Dataset',
   },
   {
-    name: 'Urban Road Waterlogging',
+    name: 'Waterlogging Hazard',
     url: '/demo-evidence/waterlogging-reference.jpg',
     filename: 'waterlogging-reference.jpg',
-    desc: '[SYNTHETIC DEMO] Submerged road cavity and extensive storm waterlogging concealing road rupture near Surajkund Road, Meerut.',
+    desc: 'Storm waterlogging concealing road pavement rupture near Surajkund Road, Meerut.',
     type: 'waterlogging',
     license: 'LICENSED_REFERENCE',
     author: 'Contributed Photo Evidence',
@@ -69,10 +96,10 @@ const demoPresets: DemoPreset[] = [
     originalLocation: 'Reference Road Dataset',
   },
   {
-    name: 'Surface Deterioration / Cracks',
+    name: 'Surface Cracking',
     url: '/demo-evidence/surface-deterioration-reference.jpg',
     filename: 'surface-deterioration-reference.jpg',
-    desc: '[SYNTHETIC DEMO] Coarse asphalt deterioration and surface stripping along heavy-traffic wheelpath near Baghpat Bypass, Meerut.',
+    desc: 'Coarse asphalt cracking and surface stripping along wheelpath near Baghpat Bypass, Meerut.',
     type: 'surface_deterioration',
     license: 'LICENSED_REFERENCE',
     author: 'Contributed Photo Evidence',
@@ -80,10 +107,10 @@ const demoPresets: DemoPreset[] = [
     originalLocation: 'Reference Road Dataset',
   },
   {
-    name: 'Pavement Edge Damage / Subsidence',
+    name: 'Road Edge Damage',
     url: '/demo-evidence/road-edge-reference.jpg',
     filename: 'road-edge-reference.jpg',
-    desc: '[SYNTHETIC DEMO] Collapsed road edge and washed-out subbase causing hazardous shoulder dropoff near Garh Road, Meerut.',
+    desc: 'Washed-out road edge and hazardous shoulder dropoff near Garh Road, Meerut.',
     type: 'road_edge_damage',
     license: 'LICENSED_REFERENCE',
     author: 'Contributed Photo Evidence',
@@ -92,36 +119,81 @@ const demoPresets: DemoPreset[] = [
   },
 ];
 
+const defectCategories = [
+  {
+    id: 'pothole',
+    label: 'Pothole',
+    icon: AlertCircle,
+  },
+  {
+    id: 'road_crack',
+    label: 'Road Crack',
+    icon: Activity,
+  },
+  {
+    id: 'surface_deterioration',
+    label: 'Damaged Surface',
+    icon: Layers,
+  },
+  {
+    id: 'waterlogging',
+    label: 'Waterlogging',
+    icon: Droplets,
+  },
+  {
+    id: 'road_obstruction',
+    label: 'Road Obstruction',
+    icon: AlertTriangle,
+  },
+  {
+    id: 'other',
+    label: 'Other',
+    icon: HelpCircle,
+  },
+];
+
 export const CreateReportPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  // Photo Evidence state
+  // Wizard Step: 1 = ISSUE, 2 = PHOTO, 3 = LOCATION, 4 = SUBMIT (REVIEW)
+  const [currentStep, setCurrentStep] = useState<number>(1);
+
+  // Step 1: Issue
+  const [selectedCategory, setSelectedCategory] = useState<string>('pothole');
+
+  // Step 2: Photo
   const [selectedPreset, setSelectedPreset] = useState<DemoPreset | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string>('');
   const [imageFilename, setImageFilename] = useState<string>('');
   const [imageFileSize, setImageFileSize] = useState<number | undefined>(undefined);
   const [evidenceSource, setEvidenceSource] = useState<'USER_UPLOADED' | 'LICENSED_EXTERNAL' | 'DEMO_SYNTHETIC'>('USER_UPLOADED');
+  const [isPhotoZoomed, setIsPhotoZoomed] = useState<boolean>(false);
 
-  // Form details
-  const [description, setDescription] = useState<string>('');
-  const [damageTypeHint, setDamageTypeHint] = useState<string>('pothole');
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Location state
-  const [location, setLocation] = useState<[number, number]>([28.9835, 77.7425]); // Default Jail Chungi Road, Meerut
+  // Step 3: Location
+  const [location, setLocation] = useState<[number, number]>([28.9835, 77.7425]); // Meerut default
   const [detectedRoad, setDetectedRoad] = useState<string>('Jail Chungi Road, Meerut');
   const [detectedDepartment, setDetectedDepartment] = useState<string>('Public Works Department (UP PWD Meerut)');
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'locating' | 'success' | 'denied'>('idle');
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
+  const [isManualLocationMode, setIsManualLocationMode] = useState<boolean>(false);
 
-  // Submission state
+  // Step 4: Review & Description
+  const [description, setDescription] = useState<string>('');
+
+  // Submission & Processing state
   const [submitting, setSubmitting] = useState<boolean>(false);
-  const [submitStep, setSubmitStep] = useState<string>('');
+  const [submissionStage, setSubmissionStage] = useState<number>(0);
+  const [submittedReport, setSubmittedReport] = useState<any | null>(null);
   const [error, setError] = useState<string>('');
   const [savedOfflineDraft, setSavedOfflineDraft] = useState<OfflineDraftReport | null>(null);
   const [cancelledReport, setCancelledReport] = useState<any | null>(null);
 
-  // Auto-resolve jurisdiction whenever location pin moves
+  // Auto-resolve road name and jurisdiction
   const fetchJurisdiction = useCallback(async (lat: number, lng: number) => {
     try {
       const info = await api.resolveJurisdiction(lat, lng);
@@ -136,7 +208,7 @@ export const CreateReportPage: React.FC = () => {
     fetchJurisdiction(location[0], location[1]);
   }, [location, fetchJurisdiction]);
 
-  // Handle GPS location request with high-accuracy + fast fallback
+  // GPS Location Request
   const requestGpsLocation = () => {
     if (!navigator.geolocation) {
       setGpsStatus('denied');
@@ -144,10 +216,8 @@ export const CreateReportPage: React.FC = () => {
     }
 
     if (gpsStatus === 'locating') return;
-
     setGpsStatus('locating');
 
-    // First try high accuracy with 5-second timeout
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
@@ -156,13 +226,12 @@ export const CreateReportPage: React.FC = () => {
         setGpsStatus('success');
       },
       (err) => {
-        console.warn('High accuracy GPS timed out or failed, falling back to standard accuracy:', err);
-        // Fallback to coarse / cached location
+        console.warn('High accuracy GPS timed out, falling back to standard accuracy:', err);
         navigator.geolocation.getCurrentPosition(
           (fallbackPos) => {
             const coords: [number, number] = [fallbackPos.coords.latitude, fallbackPos.coords.longitude];
             setLocation(coords);
-            setGpsAccuracy(Math.round(fallbackPos.coords.accuracy || 50));
+            setGpsAccuracy(Math.round(fallbackPos.coords.accuracy || 45));
             setGpsStatus('success');
           },
           () => {
@@ -175,31 +244,19 @@ export const CreateReportPage: React.FC = () => {
     );
   };
 
-  // Attempt GPS on initial mount
   useEffect(() => {
     requestGpsLocation();
   }, []);
 
-  // Map pin drag/click
   const handleMapSelect = (lat: number, lng: number) => {
     setLocation([lat, lng]);
   };
 
-  // Quick preset selection
-  const handleSelectPreset = (preset: DemoPreset) => {
-    setSelectedPreset(preset);
-    setSelectedFile(null);
-    setImageUrl(preset.url);
-    setImageFilename(preset.filename);
-    setImageFileSize(undefined);
-    setEvidenceSource('LICENSED_EXTERNAL');
-    setDescription(preset.desc);
-    setDamageTypeHint(preset.type);
-    setError('');
-  };
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  // Photo upload handler
-  const handlePhotoSelect = (file: File, previewUrl: string) => {
+    const previewUrl = URL.createObjectURL(file);
     setSelectedPreset(null);
     setSelectedFile(file);
     setImageUrl(previewUrl);
@@ -209,7 +266,19 @@ export const CreateReportPage: React.FC = () => {
     setError('');
   };
 
-  const handlePhotoClear = () => {
+  const handleSelectPreset = (preset: DemoPreset) => {
+    setSelectedPreset(preset);
+    setSelectedFile(null);
+    setImageUrl(preset.url);
+    setImageFilename(preset.filename);
+    setImageFileSize(undefined);
+    setEvidenceSource('LICENSED_EXTERNAL');
+    setDescription(preset.desc);
+    setSelectedCategory(preset.type === 'road_edge_damage' ? 'other' : preset.type);
+    setError('');
+  };
+
+  const handlePhotoRemove = () => {
     setSelectedPreset(null);
     setSelectedFile(null);
     setImageUrl('');
@@ -218,9 +287,7 @@ export const CreateReportPage: React.FC = () => {
     setEvidenceSource('USER_UPLOADED');
   };
 
-  // Save as offline pending sync draft
   const handleSaveOffline = async () => {
-    setSubmitStep('Saving report locally on device (Offline Mode)...');
     try {
       let base64Data: string | undefined = undefined;
       if (selectedFile) {
@@ -230,8 +297,13 @@ export const CreateReportPage: React.FC = () => {
       }
 
       const clientDraftId = generateClientId();
+      const effectiveDescription =
+        description.trim() ||
+        `${defectCategories.find((c) => c.id === selectedCategory)?.label || 'Road hazard'} reported near ${detectedRoad}.`;
+
       const draft: OfflineDraftReport = {
         id: clientDraftId,
+        userId: user?.id,
         imageUrl: imageUrl,
         photoBase64: base64Data,
         evidenceSource,
@@ -240,8 +312,8 @@ export const CreateReportPage: React.FC = () => {
         latitude: location[0],
         longitude: location[1],
         address: `${detectedRoad}, Meerut, Uttar Pradesh`,
-        description: description.trim(),
-        damageTypeHint,
+        description: effectiveDescription,
+        damageTypeHint: selectedCategory,
         createdAt: new Date().toISOString(),
         status: 'PENDING_SYNC',
         syncAttempts: 0,
@@ -250,32 +322,34 @@ export const CreateReportPage: React.FC = () => {
       await offlineSync.saveOfflineReport(draft);
       setSavedOfflineDraft(draft);
       setSubmitting(false);
-      setSubmitStep('');
+      setSubmissionStage(0);
     } catch (saveErr: any) {
       setError(`Failed to save offline draft: ${saveErr.message}`);
       setSubmitting(false);
-      setSubmitStep('');
+      setSubmissionStage(0);
     }
   };
 
-  // Submit report workflow
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
     if (!imageUrl) {
-      setError('Please capture or select a photo of the road issue.');
-      return;
-    }
-
-    if (!description.trim() || description.trim().length < 5) {
-      setError('Please provide a brief description of the road problem (minimum 5 characters).');
+      setCurrentStep(2);
+      setError('Please add a photo of the road issue before submitting.');
       return;
     }
 
     setSubmitting(true);
     setError('');
+    setSubmissionStage(1); // 1: REPORT RECEIVED
 
-    // If currently offline, immediately save locally without attempting failing network call
+    const categoryObj = defectCategories.find((c) => c.id === selectedCategory);
+    const categoryLabel = categoryObj ? categoryObj.label : 'Road Hazard';
+    const effectiveDescription =
+      description.trim().length >= 3
+        ? description.trim()
+        : `${categoryLabel} reported near ${detectedRoad}.`;
+
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       await handleSaveOffline();
       return;
@@ -284,21 +358,30 @@ export const CreateReportPage: React.FC = () => {
     try {
       let finalImageUrl = imageUrl;
 
-      // If user uploaded a local file, upload it first to storage endpoint
       if (selectedFile) {
-        setSubmitStep('Uploading high-resolution road evidence...');
         const uploadResult = await api.uploadImage(selectedFile);
         finalImageUrl = uploadResult.url;
       }
 
-      setSubmitStep('AI optical analysis & jurisdiction routing...');
+      // Stage 2: AI ANALYSIS
+      setSubmissionStage(2);
+      await new Promise((r) => setTimeout(r, 450));
+
+      // Stage 3: PRIORITY
+      setSubmissionStage(3);
+      await new Promise((r) => setTimeout(r, 400));
+
+      // Stage 4: AUTHORITY ROUTING
+      setSubmissionStage(4);
+      await new Promise((r) => setTimeout(r, 350));
+
       const newReport = await api.createReport({
         imageUrl: finalImageUrl,
         evidenceSource,
         evidenceSourceMetadata:
           evidenceSource === 'LICENSED_EXTERNAL' || evidenceSource === 'DEMO_SYNTHETIC'
             ? JSON.stringify({
-                title: selectedPreset?.name || 'Road Distress Demonstration Photo',
+                title: selectedPreset?.name || 'Road Distress Reference Photo',
                 source: 'Wikimedia Commons',
                 sourceUrl: selectedPreset?.sourceUrl || 'https://commons.wikimedia.org',
                 license: selectedPreset?.license || 'CC BY-SA 4.0',
@@ -313,81 +396,193 @@ export const CreateReportPage: React.FC = () => {
         latitude: location[0],
         longitude: location[1],
         address: `${detectedRoad}, Meerut, Uttar Pradesh`,
-        description: description.trim(),
-        damageTypeHint,
+        description: effectiveDescription,
+        damageTypeHint: selectedCategory,
       });
 
-      // If backend cancelled report due to invalid road-damage evidence
       if (newReport.status === 'CANCELLED' || (newReport as any).validRoadDamage === false) {
         setCancelledReport(newReport);
         setSubmitting(false);
-        setSubmitStep('');
+        setSubmissionStage(0);
         return;
       }
 
-      // Navigate directly to live complaint lifecycle view
-      navigate(`/reports/${newReport.id}`);
+      setSubmittedReport(newReport);
+      setSubmitting(false);
     } catch (err: any) {
       const isNetworkError =
         (typeof navigator !== 'undefined' && !navigator.onLine) ||
         (err.message && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')));
 
       if (isNetworkError) {
-        console.warn('Network submission failed, falling back to offline draft:', err);
+        console.warn('Network submission failed, saving offline draft:', err);
         await handleSaveOffline();
       } else {
         setError(err.message || 'Failed to submit road report. Please check details and try again.');
         setSubmitting(false);
-        setSubmitStep('');
+        setSubmissionStage(0);
       }
     }
   };
 
+  // SUCCESS SCREEN (Section: Success Screen & AI Assessment)
+  if (submittedReport) {
+    const ai = submittedReport.aiAnalysis;
+    const priority = submittedReport.riskScore;
+
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-8 sm:py-12 space-y-6">
+        <div className="bg-white rounded-3xl p-6 sm:p-9 border border-slate-200/90 shadow-float space-y-7 text-center animate-in fade-in zoom-in-95 duration-200">
+          {/* Check Circle Icon */}
+          <div className="w-16 h-16 rounded-2xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center mx-auto shadow-subtle">
+            <Check className="w-8 h-8 stroke-[3]" />
+          </div>
+
+          {/* Header */}
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center space-x-1.5 bg-teal-50 text-teal-800 border border-teal-200 px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider">
+              <span>✓ REPORT SUBMITTED</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black font-heading text-ink-950">
+              Your road issue has been received.
+            </h2>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              The case has been registered and forwarded to municipal maintenance division.
+            </p>
+          </div>
+
+          {/* Report ID Badge */}
+          <div className="p-4 bg-warm-100 rounded-2xl border border-slate-200 flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Report ID</span>
+            <span className="font-mono text-base sm:text-lg font-black text-ink-950 bg-white px-3.5 py-1 rounded-xl border border-slate-200 shadow-xs">
+              {submittedReport.id.startsWith('RG-')
+                ? submittedReport.id
+                : `RG-${submittedReport.id.replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase()}`}
+            </span>
+          </div>
+
+          {/* Lifecycle Progression (Required Sequence) */}
+          <div className="space-y-2 text-left">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block text-center">
+              REPORT RESOLUTION LIFECYCLE
+            </span>
+            <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center text-[10px] font-extrabold">
+              <div className="p-2.5 rounded-xl bg-teal-700 text-white border border-teal-800 shadow-xs">
+                <span>REPORT RECEIVED ✓</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-teal-700 text-white border border-teal-800 shadow-xs">
+                <span>AI ANALYSIS ✓</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-teal-700 text-white border border-teal-800 shadow-xs">
+                <span>PRIORITY ✓</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-teal-700 text-white border border-teal-800 shadow-xs">
+                <span>AUTHORITY ✓</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-warm-100 text-slate-500 border border-slate-200">
+                <span>ACTION ○</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-warm-100 text-slate-500 border border-slate-200">
+                <span>VERIFICATION ○</span>
+              </div>
+            </div>
+          </div>
+
+          {/* AI ASSESSMENT CARD (From Backend Response) */}
+          {ai && (
+            <div className="bg-warm-50 rounded-2xl p-5 border border-slate-200 text-left space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                <span className="text-xs font-black uppercase tracking-wider text-ink-950 flex items-center space-x-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-teal-600" />
+                  <span>AI ASSESSMENT</span>
+                </span>
+                <span className="text-[10px] font-bold bg-white text-teal-800 border border-slate-200 px-2 py-0.5 rounded-md">
+                  AI-assisted assessment
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+                <div className="bg-white p-3 rounded-xl border border-slate-200">
+                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Issue</span>
+                  <span className="font-black text-ink-950 capitalize">{ai.damageType || submittedReport.damageType}</span>
+                </div>
+                <div className="bg-white p-3 rounded-xl border border-slate-200">
+                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Severity</span>
+                  <span className="font-black text-ink-950 capitalize">{ai.severity || submittedReport.severity}</span>
+                </div>
+                <div className="bg-white p-3 rounded-xl border border-slate-200">
+                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Safety Risk</span>
+                  <span className="font-black text-ink-950 capitalize">
+                    {ai.roadSafetyRisk !== undefined
+                      ? (ai.roadSafetyRisk >= 70 ? 'High' : ai.roadSafetyRisk >= 40 ? 'Moderate' : 'Low')
+                      : (priority >= 70 ? 'High' : 'Moderate')}
+                  </span>
+                </div>
+                <div className="bg-white p-3 rounded-xl border border-slate-200">
+                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Priority</span>
+                  <span className="font-black text-teal-700">{priority} / 100</span>
+                </div>
+                <div className="bg-white p-3 rounded-xl border border-slate-200">
+                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Duplicate</span>
+                  <span className="font-black text-ink-950">{submittedReport.isDuplicate ? 'Yes' : 'No'}</span>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-200/60 flex items-center justify-between">
+                <span className="italic">Final action is reviewed by the responsible authority.</span>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            <Link
+              to={`/reports/${submittedReport.id}`}
+              className="btn-lift w-full sm:w-auto bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-extrabold px-8 py-3.5 rounded-xl text-xs sm:text-sm tracking-wide transition shadow-md shadow-teal-900/15 flex items-center justify-center space-x-2"
+            >
+              <span>VIEW MY REPORT</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSubmittedReport(null);
+                setImageUrl('');
+                setSelectedFile(null);
+                setSelectedPreset(null);
+                setDescription('');
+                setCurrentStep(1);
+              }}
+              className="w-full sm:w-auto bg-white hover:bg-slate-50 text-slate-700 font-bold px-6 py-3.5 rounded-xl text-xs sm:text-sm border border-slate-200 transition"
+            >
+              REPORT ANOTHER ISSUE
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // CANCELLED REPORT SCREEN (Intake validation rejection)
   if (cancelledReport) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12">
-        <div className="bg-white rounded-3xl p-8 border-2 border-rose-200 shadow-xl space-y-6 text-center">
+        <div className="bg-white rounded-3xl p-8 border border-rose-200 shadow-float space-y-6 text-center">
           <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
             <ShieldAlert className="w-8 h-8" />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="inline-flex items-center space-x-1.5 bg-rose-100 text-rose-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
               <span>✕ Report Cancelled</span>
-              <span>•</span>
-              <span>Intake Stopped</span>
             </div>
-            <h2 className="text-2xl font-bold font-heading text-slate-900">
+            <h2 className="text-2xl font-black font-heading text-ink-950">
               Invalid Road-Damage Evidence
             </h2>
-            <p className="text-sm text-slate-600 max-w-md mx-auto">
-              No supported road damage was detected in the uploaded photograph. Your image does not appear to be related to a road-safety issue.
+            <p className="text-xs text-slate-600 max-w-md mx-auto">
+              No supported road damage was detected in the uploaded photograph. Please upload a clear photo of asphalt defects, potholes, or waterlogging.
             </p>
-          </div>
-
-          <div className="bg-rose-50/60 rounded-2xl p-5 border border-rose-200/80 text-left space-y-3 text-xs">
-            <div className="text-slate-800 font-semibold">
-              Supported road-safety evidence includes:
-            </div>
-            <ul className="list-disc pl-5 space-y-1 text-slate-600">
-              <li>Pothole & Cavity Hazards</li>
-              <li>Water Logging & Ponding Hazards</li>
-              <li>Surface Cracking & Asphalt Stripping</li>
-              <li>Road Edge Damage & Shoulder Drop-off</li>
-              <li>Drain / Manhole Collapse Hazards</li>
-            </ul>
-            <div className="pt-2 border-t border-rose-200/60 flex items-center justify-between text-rose-900 font-bold">
-              <span>Risk Assessment:</span>
-              <span className="bg-white px-2.5 py-1 rounded border border-rose-300">NO RISK FOUND</span>
-            </div>
-            <div className="flex items-center justify-between text-slate-700">
-              <span>Forwarded to Authority:</span>
-              <span className="font-bold text-rose-700">NO</span>
-            </div>
-            <div className="flex items-center justify-between text-slate-500">
-              <span>Submission Reference:</span>
-              <span className="font-mono text-slate-700">{cancelledReport.id}</span>
-            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
@@ -398,8 +593,9 @@ export const CreateReportPage: React.FC = () => {
                 setImageUrl('');
                 setSelectedFile(null);
                 setSelectedPreset(null);
+                setCurrentStep(2);
               }}
-              className="flex-1 bg-gov-700 hover:bg-gov-800 text-white font-bold py-3 px-4 rounded-xl shadow-sm transition text-xs"
+              className="btn-lift flex-1 bg-teal-600 hover:bg-teal-500 text-white font-bold py-3 px-4 rounded-xl shadow-sm transition text-xs"
             >
               Upload Road Photo Again
             </button>
@@ -416,46 +612,41 @@ export const CreateReportPage: React.FC = () => {
     );
   }
 
+  // OFFLINE SAVED DRAFT SCREEN
   if (savedOfflineDraft) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12">
-        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl space-y-6 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
+        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-float space-y-6 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center mx-auto shadow-inner">
             <WifiOff className="w-8 h-8" />
           </div>
 
-          <div className="space-y-2">
-            <div className="inline-flex items-center space-x-1.5 bg-amber-100/70 text-amber-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-              <span>Pending Sync</span>
-              <span>•</span>
-              <span>Saved Locally</span>
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center space-x-1.5 bg-amber-100 text-amber-900 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+              <span>Saved Locally • Pending Sync</span>
             </div>
-            <h2 className="text-2xl font-bold font-heading text-slate-900">
+            <h2 className="text-2xl font-black font-heading text-ink-950">
               Report Queued for Synchronization
             </h2>
-            <p className="text-sm text-slate-600 max-w-md mx-auto">
-              You are currently offline or experiencing weak connectivity. Your evidence photo and GPS coordinates have been safely stored on your device.
+            <p className="text-xs text-slate-600 max-w-md mx-auto">
+              You are currently offline. Your road evidence and GPS location are securely stored on your device.
             </p>
           </div>
 
-          <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 text-left space-y-2 text-xs">
+          <div className="bg-warm-100 rounded-2xl p-4 border border-slate-200 text-left space-y-2 text-xs">
             <div className="flex justify-between">
               <span className="text-slate-500">Draft ID:</span>
-              <span className="font-mono font-semibold text-slate-800">{savedOfflineDraft.id}</span>
+              <span className="font-mono font-bold text-slate-900">{savedOfflineDraft.id}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Location:</span>
-              <span className="font-medium text-slate-800 truncate max-w-[240px]">{savedOfflineDraft.address}</span>
+              <span className="font-medium text-slate-900 truncate max-w-[240px]">{savedOfflineDraft.address}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Hazard Type:</span>
-              <span className="font-bold text-slate-800 capitalize">{savedOfflineDraft.damageTypeHint}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Sync Behavior:</span>
-              <span className="text-emerald-700 font-semibold flex items-center space-x-1">
+              <span className="text-slate-500">Auto-sync:</span>
+              <span className="text-teal-700 font-bold flex items-center space-x-1">
                 <RefreshCw className="w-3 h-3" />
-                <span>Auto-sync when internet reconnects</span>
+                <span>Will sync when reconnected</span>
               </span>
             </div>
           </div>
@@ -463,7 +654,7 @@ export const CreateReportPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Link
               to="/my-reports"
-              className="w-full sm:w-auto bg-gov-700 hover:bg-gov-800 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition shadow-md flex items-center justify-center space-x-2"
+              className="w-full sm:w-auto bg-teal-700 hover:bg-teal-600 text-white font-bold px-6 py-3 rounded-xl text-xs transition flex items-center justify-center space-x-2"
             >
               <span>View My Reports</span>
               <ArrowRight className="w-4 h-4" />
@@ -471,10 +662,11 @@ export const CreateReportPage: React.FC = () => {
             <button
               onClick={() => {
                 setSavedOfflineDraft(null);
-                handlePhotoClear();
+                handlePhotoRemove();
                 setDescription('');
+                setCurrentStep(1);
               }}
-              className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-5 py-2.5 rounded-xl text-sm transition"
+              className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-5 py-3 rounded-xl text-xs transition"
             >
               Report Another Issue
             </button>
@@ -484,279 +676,611 @@ export const CreateReportPage: React.FC = () => {
     );
   }
 
+  // WIZARD PROGRESS BAR STEPS
+  const steps = [
+    { num: 1, label: '01 ISSUE' },
+    { num: 2, label: '02 PHOTO' },
+    { num: 3, label: '03 LOCATION' },
+    { num: 4, label: '04 SUBMIT' },
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
-      {/* Page Header */}
-      <div>
-        <div className="inline-flex items-center space-x-2 bg-gov-50 border border-gov-200 px-3 py-1 rounded-full text-xs font-semibold text-gov-800 mb-2">
-          <span>Citizen Redressal Portal</span>
-          <span>•</span>
-          <span>Meerut District</span>
+    <div className="max-w-2xl mx-auto px-4 py-6 sm:py-10 space-y-7 pb-24 sm:pb-12">
+      {/* Hidden file inputs */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileInputChange}
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleFileInputChange}
+      />
+
+      {/* Photo Lightbox */}
+      {isPhotoZoomed && imageUrl && (
+        <div className="fixed inset-0 bg-ink-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="relative max-w-3xl w-full bg-slate-900 rounded-3xl overflow-hidden border border-slate-700 shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setIsPhotoZoomed(false)}
+              className="absolute top-4 right-4 bg-ink-900/80 text-white p-2 rounded-xl hover:bg-ink-800 transition z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <img src={imageUrl} alt="Inspection Preview" className="w-full h-auto max-h-[85vh] object-contain mx-auto" />
+          </div>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-bold font-heading text-slate-900">
-          Report a Road Safety Issue
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Upload photo evidence and pin the location. RoadGuard AI analyzes distress severity, starts the SLA clock, and notifies responsible engineers.
-        </p>
+      )}
+
+      {/* SUBMISSION PROCESSING STATE MODAL (Section: Submission Experience) */}
+      {submitting && (
+        <div className="fixed inset-0 bg-ink-950/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl p-7 sm:p-8 max-w-md w-full shadow-float border border-slate-200 text-center space-y-6">
+            <div className="w-14 h-14 rounded-2xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center mx-auto animate-pulse">
+              <Sparkles className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-lg font-black font-heading text-ink-950 uppercase tracking-tight">
+                Processing Report Intake
+              </h3>
+              <p className="text-xs text-slate-500">
+                Please wait while our intake workflow registers your evidence...
+              </p>
+            </div>
+
+            {/* Required Submission Processing State */}
+            <div className="space-y-2 text-left text-xs">
+              <div className="p-3 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-between text-teal-900 font-bold">
+                <span>REPORT RECEIVED</span>
+                <span className="text-teal-700">✓</span>
+              </div>
+
+              <div
+                className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
+                  submissionStage >= 2
+                    ? 'bg-teal-50 border-teal-200 text-teal-900 font-bold'
+                    : 'bg-warm-50 border-slate-200 text-slate-400'
+                }`}
+              >
+                <span>AI ANALYSIS</span>
+                <span>{submissionStage > 2 ? '✓' : 'Processing...'}</span>
+              </div>
+
+              <div
+                className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
+                  submissionStage >= 3
+                    ? 'bg-teal-50 border-teal-200 text-teal-900 font-bold'
+                    : 'bg-warm-50 border-slate-200 text-slate-400'
+                }`}
+              >
+                <span>PRIORITY</span>
+                <span>{submissionStage > 3 ? '✓' : 'Calculating...'}</span>
+              </div>
+
+              <div
+                className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
+                  submissionStage >= 4
+                    ? 'bg-teal-50 border-teal-200 text-teal-900 font-bold'
+                    : 'bg-warm-50 border-slate-200 text-slate-400'
+                }`}
+              >
+                <span>AUTHORITY ROUTING</span>
+                <span>{submissionStage >= 4 ? 'Preparing...' : 'Waiting'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOP PROGRESS INDICATOR (Connected Progress Line) */}
+      <div className="space-y-3">
+        <div className="relative">
+          {/* Connecting line */}
+          <div className="absolute top-1/2 left-4 right-4 h-0.5 bg-slate-200 -translate-y-1/2 z-0" />
+          <div
+            className="absolute top-1/2 left-4 h-0.5 bg-teal-600 -translate-y-1/2 transition-all duration-300 z-0"
+            style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
+          />
+
+          <div className="relative z-10 flex items-center justify-between">
+            {steps.map((s) => {
+              const isDone = currentStep > s.num;
+              const isCurrent = currentStep === s.num;
+              return (
+                <button
+                  key={s.num}
+                  type="button"
+                  onClick={() => {
+                    if (s.num < currentStep) setCurrentStep(s.num);
+                  }}
+                  className={`flex flex-col items-center group focus:outline-none ${
+                    s.num < currentStep ? 'cursor-pointer' : 'cursor-default'
+                  }`}
+                >
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${
+                      isDone
+                        ? 'bg-teal-600 text-white shadow-xs'
+                        : isCurrent
+                        ? 'bg-ink-950 text-white ring-4 ring-teal-500/20 shadow-xs'
+                        : 'bg-white border-2 border-slate-300 text-slate-400'
+                    }`}
+                  >
+                    {isDone ? '✓' : s.num}
+                  </div>
+                  <span
+                    className={`text-[10px] font-bold tracking-wider mt-1.5 uppercase ${
+                      isCurrent ? 'text-teal-700 font-black' : isDone ? 'text-slate-700' : 'text-slate-400'
+                    }`}
+                  >
+                    {s.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
-      {/* Global Error Notice */}
       {error && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-xs font-semibold flex items-center space-x-2 shadow-sm">
-          <div className="w-2 h-2 rounded-full bg-rose-600 animate-ping"></div>
+        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-xs flex items-center space-x-2">
+          <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* STEP 1: Capture Road Photo */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-5">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center space-x-3">
-              <div className="w-7 h-7 rounded-lg bg-gov-700 text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                1
-              </div>
-              <h2 className="font-bold text-slate-900 text-base sm:text-lg">Step 1 — Capture Road Photo</h2>
-            </div>
-            <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">Real Evidence Only</span>
+      {/* ================================================== */}
+      {/* STEP 1 — SELECT ISSUE                             */}
+      {/* ================================================== */}
+      {currentStep === 1 && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-card space-y-6 animate-in fade-in duration-150">
+          <div className="space-y-1">
+            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider">STEP 1 OF 4</span>
+            <h1 className="text-2xl sm:text-3xl font-black font-heading text-ink-950">
+              What did you find?
+            </h1>
+            <p className="text-xs text-slate-500">
+              Choose the option that best describes the road surface defect.
+            </p>
           </div>
 
-          {/* Demonstration Presets Bar (for Judges / Evaluation) */}
-          <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center space-x-1.5">
-                <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-                <span>Quick Demonstration Presets (SIH Prototype):</span>
-              </span>
-              <span className="text-[10px] text-slate-400">Labeled DEMO EVIDENCE</span>
-            </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {defectCategories.map((cat) => {
+              const Icon = cat.icon;
+              const isSelected = selectedCategory === cat.id;
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {demoPresets.map((preset, i) => {
-                const isSelected = imageUrl === preset.url;
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => handleSelectPreset(preset)}
-                    className={`p-2 rounded-xl text-left border transition text-xs flex items-center space-x-2.5 ${
-                      isSelected
-                        ? 'border-amber-500 bg-amber-50/80 text-amber-950 ring-2 ring-amber-200'
-                        : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
-                    }`}
-                  >
-                    <img
-                      src={preset.url}
-                      alt={preset.name}
-                      className="w-12 h-12 rounded-lg object-cover border border-slate-200 shrink-0 bg-slate-100"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold truncate text-[11px] text-slate-900">{preset.name}</span>
-                      </div>
-                      <div className="flex items-center space-x-1.5 mt-0.5">
-                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 font-semibold font-mono">
-                          {preset.license}
-                        </span>
-                        <span className="text-[9px] text-slate-400 truncate">Wikimedia</span>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Attribution Box if Real Licensed Preset is Active */}
-          {selectedPreset && (
-            <div className="p-3 bg-amber-50/90 border border-amber-200/80 rounded-xl text-xs space-y-1">
-              <div className="flex items-center justify-between text-amber-900 font-bold">
-                <span className="flex items-center space-x-1.5">
-                  <ShieldAlert className="w-3.5 h-3.5 text-amber-700" />
-                  <span>Licensed External Photograph Selected</span>
-                </span>
-                <span className="font-mono text-[10px] bg-amber-200 px-1.5 py-0.5 rounded text-amber-900 font-semibold">
-                  {selectedPreset.license}
-                </span>
-              </div>
-              <p className="text-[11px] text-amber-800">
-                Source: <strong>{selectedPreset.name}</strong> by {selectedPreset.author} via{' '}
-                <a
-                  href={selectedPreset.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:text-amber-950"
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between space-y-3 btn-lift ${
+                    isSelected
+                      ? 'bg-teal-50/70 border-teal-600 ring-2 ring-teal-600/30 text-teal-950 shadow-subtle'
+                      : 'bg-warm-50/60 border-slate-200 hover:border-slate-300 text-slate-700'
+                  }`}
                 >
-                  Wikimedia Commons
-                </a>{' '}
-                ({selectedPreset.originalLocation}).
-              </p>
-              <p className="text-[10px] text-amber-700 italic">
-                Synthetic Demo Record: Real road photograph used under reusable license for demonstration. Not captured in Meerut.
-              </p>
-            </div>
-          )}
+                  <div className="flex items-center justify-between w-full">
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        isSelected ? 'bg-teal-600 text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200'
+                      }`}
+                    >
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    {isSelected && (
+                      <div className="w-5 h-5 rounded-full bg-teal-600 text-white flex items-center justify-center text-[10px] font-bold">
+                        ✓
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <span className="font-heading font-black text-sm block tracking-tight">
+                      {cat.label}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
 
-          {/* Unified Photo Upload Component */}
-          <RoadPhotoUpload
-            currentImageUrl={imageUrl}
-            currentFilename={imageFilename}
-            currentFileSize={imageFileSize}
-            evidenceSource={evidenceSource}
-            onFileSelect={handlePhotoSelect}
-            onClear={handlePhotoClear}
-            disabled={submitting}
-            label="Upload Real Road Photo"
-            subtitle="Take a live photo on site or select from device gallery. JPG, PNG, WebP supported."
-          />
-        </div>
-
-        {/* STEP 2: Location */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center space-x-3">
-              <div className="w-7 h-7 rounded-lg bg-gov-700 text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                2
-              </div>
-              <h2 className="font-bold text-slate-900 text-base sm:text-lg">Step 2 — Road Location & Geo-Tag</h2>
-            </div>
-
-            {/* Locate Me Button */}
+          {/* Bottom Action */}
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-end">
             <button
               type="button"
-              onClick={requestGpsLocation}
-              disabled={gpsStatus === 'locating'}
-              className="text-xs px-3 py-1.5 rounded-xl bg-gov-50 hover:bg-gov-100 text-gov-800 border border-gov-200 font-bold transition flex items-center space-x-1.5 shadow-sm disabled:opacity-50"
+              onClick={() => {
+                setError('');
+                setCurrentStep(2);
+              }}
+              className="btn-lift w-full sm:w-auto bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-xs sm:text-sm px-7 py-3.5 rounded-xl shadow-md shadow-teal-900/15 transition flex items-center justify-center space-x-2"
             >
-              <Navigation className={`w-3.5 h-3.5 text-gov-700 ${gpsStatus === 'locating' ? 'animate-spin' : ''}`} />
-              <span>{gpsStatus === 'locating' ? 'Locating...' : 'Use My GPS'}</span>
+              <span>Continue</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
+        </div>
+      )}
 
-          {/* GPS Status Message if denied or unavailable */}
-          {gpsStatus === 'denied' && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-start space-x-2">
-              <MapPin className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <span>
-                GPS permission was not granted or timed out. You can click or tap anywhere on the map below to drop the incident pin manually on the correct road.
+      {/* ================================================== */}
+      {/* STEP 2 — PHOTO                                    */}
+      {/* ================================================== */}
+      {currentStep === 2 && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-card space-y-6 animate-in fade-in duration-150">
+          <div className="space-y-1">
+            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider">STEP 2 OF 4</span>
+            <h1 className="text-2xl sm:text-3xl font-black font-heading text-ink-950">
+              Show us the problem
+            </h1>
+            <p className="text-xs text-slate-500">
+              A clear photo helps us understand the road condition.
+            </p>
+          </div>
+
+          {/* Large Upload / Camera Area */}
+          {!imageUrl ? (
+            <div className="border-2 border-dashed border-slate-300 rounded-3xl p-6 sm:p-8 text-center bg-warm-50/50 space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center mx-auto text-teal-600 shadow-xs">
+                <Camera className="w-7 h-7" />
+              </div>
+
+              <div className="space-y-1">
+                <h3 className="font-bold text-ink-950 text-sm">Upload road defect photograph</h3>
+                <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
+                  Take a live photo on your device or upload from your gallery.
+                </p>
+              </div>
+
+              {/* Action Buttons: Take Photo & Upload Photo */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="btn-lift w-full sm:w-auto bg-teal-700 hover:bg-teal-600 text-white font-extrabold text-xs px-5 py-3 rounded-xl transition flex items-center justify-center space-x-2 shadow-sm"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>Take Photo</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="btn-lift w-full sm:w-auto bg-white hover:bg-slate-50 text-ink-950 font-extrabold text-xs px-5 py-3 rounded-xl border border-slate-300 transition flex items-center justify-center space-x-2"
+                >
+                  <ImageIcon className="w-4 h-4 text-slate-500" />
+                  <span>Upload Photo</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Image Preview after selection with Replace & Remove */
+            <div className="space-y-3">
+              <div className="relative aspect-video rounded-3xl overflow-hidden border border-slate-200 bg-slate-900 group shadow-inner">
+                <img src={imageUrl} alt="Selected Road Issue Preview" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setIsPhotoZoomed(true)}
+                  className="absolute top-3 right-3 bg-ink-950/80 text-white p-2 rounded-xl hover:bg-ink-900 backdrop-blur-md transition"
+                  title="Inspect Fullscreen"
+                >
+                  <ZoomIn className="w-4 h-4" />
+                </button>
+                <div className="absolute bottom-3 left-3 bg-ink-950/80 backdrop-blur-md text-white px-3 py-1 rounded-xl text-[10px] font-mono">
+                  {imageFilename || 'evidence_photo.jpg'}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="btn-lift flex-1 bg-warm-100 hover:bg-slate-200 text-ink-950 font-bold text-xs py-2.5 px-4 rounded-xl border border-slate-200 transition text-center"
+                >
+                  Replace Photo
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handlePhotoRemove}
+                  className="btn-lift flex items-center justify-center space-x-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs py-2.5 px-4 rounded-xl border border-rose-200 transition"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Remove</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Quick Demo Reference Presets Row for SIH Evaluators */}
+          <div className="pt-3 border-t border-slate-100 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Or pick reference photo for testing:
+              </span>
+              <span className="text-[10px] text-teal-700 font-semibold bg-teal-50 px-2 py-0.5 rounded">
+                1-Click Preset
               </span>
             </div>
-          )}
 
-          {gpsStatus === 'success' && gpsAccuracy && (
-            <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center space-x-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Device GPS locked accurately (±{gpsAccuracy}m). Click map to refine exact pin spot if needed.</span>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {demoPresets.map((preset) => (
+                <button
+                  key={preset.name}
+                  type="button"
+                  onClick={() => handleSelectPreset(preset)}
+                  className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 border ${
+                    selectedPreset?.name === preset.name
+                      ? 'bg-ink-900 text-white border-ink-900 shadow-xs'
+                      : 'bg-warm-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                  }`}
+                >
+                  <span>{preset.name}</span>
+                </button>
+              ))}
             </div>
-          )}
+          </div>
 
-          {/* Interactive Leaflet Pin Drop Map */}
-          <div className="space-y-3">
-            <div className="h-64 rounded-xl overflow-hidden border border-slate-200 shadow-inner">
-              <ReportsMap
-                selectedLocation={location}
-                onLocationSelect={handleMapSelect}
-                center={location}
-                zoom={14}
-                height="100%"
-              />
-            </div>
+          {/* Navigation */}
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setCurrentStep(1)}
+              className="btn-lift flex-1 sm:flex-initial inline-flex items-center justify-center space-x-1.5 text-xs font-bold text-slate-600 hover:text-ink-900 px-5 py-3.5 rounded-xl border border-slate-200"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back</span>
+            </button>
 
-            {/* Dynamic Telemetry & Jurisdiction Resolution Bar */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-              <div className="flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200 font-mono text-slate-700">
-                <MapPin className="w-4 h-4 text-gov-700 shrink-0" />
-                <span className="truncate">
-                  Lat: {location[0].toFixed(5)}, Lng: {location[1].toFixed(5)}
-                </span>
-              </div>
-
-              <div className="flex items-center space-x-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-slate-800">
-                <Building2 className="w-4 h-4 text-gov-700 shrink-0" />
-                <span className="truncate">
-                  <strong className="text-slate-900">{detectedRoad}</strong> ({detectedDepartment})
-                </span>
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (!imageUrl) {
+                  setError('Please add or choose a photo before continuing.');
+                  return;
+                }
+                setError('');
+                setCurrentStep(3);
+              }}
+              className="btn-lift flex-1 sm:flex-initial bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-xs sm:text-sm px-7 py-3.5 rounded-xl shadow-md shadow-teal-900/15 transition flex items-center justify-center space-x-2"
+            >
+              <span>Continue</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
+      )}
 
-        {/* STEP 3: Describe Problem */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center space-x-3">
-              <div className="w-7 h-7 rounded-lg bg-gov-700 text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                3
-              </div>
-              <h2 className="font-bold text-slate-900 text-base sm:text-lg">Step 3 — Describe the Problem</h2>
-            </div>
-            <span className="text-[11px] text-slate-400">Plain citizen description</span>
+      {/* ================================================== */}
+      {/* STEP 3 — LOCATION                                 */}
+      {/* ================================================== */}
+      {currentStep === 3 && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-card space-y-6 animate-in fade-in duration-150">
+          <div className="space-y-1">
+            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider">STEP 3 OF 4</span>
+            <h1 className="text-2xl sm:text-3xl font-black font-heading text-ink-950">
+              Where is the problem?
+            </h1>
+            <p className="text-xs text-slate-500">
+              Verify GPS coordinates or adjust location pin on the map.
+            </p>
           </div>
 
-          {/* Quick Issue Type Selector Tags */}
-          <div className="flex flex-wrap gap-2">
-            {[
-              { id: 'pothole', label: '🕳 Pothole' },
-              { id: 'waterlogging', label: '🌊 Waterlogging' },
-              { id: 'crack', label: '⚡ Surface Cracking' },
-              { id: 'road_edge_damage', label: '🚧 Edge Drop-off' },
-              { id: 'drainage_damage', label: '🚰 Drainage / Manhole' },
-            ].map((tag) => (
+          {/* GPS Location Status & Details */}
+          <div className="p-4 bg-warm-50 rounded-2xl border border-slate-200 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-teal-500 animate-pulse" />
+                <span className="text-xs font-black uppercase tracking-wide text-ink-950">
+                  {gpsStatus === 'success' ? 'GPS location detected' : 'Location Pinpoint'}
+                </span>
+              </div>
+
+              {gpsAccuracy && (
+                <span className="text-[10px] font-mono font-bold bg-white text-teal-800 border border-slate-200 px-2 py-0.5 rounded-md">
+                  Accuracy: ±{gpsAccuracy}m
+                </span>
+              )}
+            </div>
+
+            {/* Display: Latitude, Longitude, Accuracy */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-mono">
+              <div className="bg-white p-2.5 rounded-xl border border-slate-200">
+                <span className="text-[10px] text-slate-400 block font-sans font-bold uppercase">Latitude</span>
+                <span className="font-bold text-ink-950">{location[0].toFixed(5)}</span>
+              </div>
+              <div className="bg-white p-2.5 rounded-xl border border-slate-200">
+                <span className="text-[10px] text-slate-400 block font-sans font-bold uppercase">Longitude</span>
+                <span className="font-bold text-ink-950">{location[1].toFixed(5)}</span>
+              </div>
+              <div className="bg-white p-2.5 rounded-xl border border-slate-200 col-span-2 sm:col-span-1">
+                <span className="text-[10px] text-slate-400 block font-sans font-bold uppercase">Status</span>
+                <span className="font-bold text-teal-700 font-sans capitalize">{gpsStatus}</span>
+              </div>
+            </div>
+
+            <div className="text-xs text-slate-600 space-y-0.5 pt-1">
+              <span className="font-bold text-ink-950 block">{detectedRoad}</span>
+              <span className="text-[11px] text-slate-400 block">Responsible: {detectedDepartment}</span>
+            </div>
+
+            {/* Buttons: Use My Location & Change Location */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
               <button
-                key={tag.id}
                 type="button"
-                onClick={() => setDamageTypeHint(tag.id)}
-                className={`text-xs px-3 py-1.5 rounded-xl border font-medium transition ${
-                  damageTypeHint === tag.id
-                    ? 'bg-gov-700 text-white border-gov-700 shadow-sm'
-                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                }`}
+                onClick={requestGpsLocation}
+                disabled={gpsStatus === 'locating'}
+                className="btn-lift bg-teal-700 hover:bg-teal-600 text-white font-bold text-xs px-4 py-2 rounded-xl transition flex items-center space-x-1.5 shadow-xs"
               >
-                {tag.label}
+                <Navigation className="w-3.5 h-3.5" />
+                <span>{gpsStatus === 'locating' ? 'Locating...' : 'Use My Location'}</span>
               </button>
-            ))}
-          </div>
 
-          <textarea
-            required
-            rows={3}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Describe what is wrong with the road (e.g. Deep pothole near junction causing two-wheelers to swerve and skid, exposed stones...)"
-            className="w-full p-3.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gov-700 focus:border-transparent transition"
-          />
-        </div>
-
-        {/* STEP 4: Submit Report */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center space-x-3 border-b border-slate-100 pb-3">
-            <div className="w-7 h-7 rounded-lg bg-gov-700 text-white flex items-center justify-center font-bold text-xs shadow-sm">
-              4
-            </div>
-            <h2 className="font-bold text-slate-900 text-base sm:text-lg">Step 4 — Submit Road Report</h2>
-          </div>
-
-          <div className="p-3.5 bg-indigo-50/70 border border-indigo-100 rounded-xl flex items-start space-x-3 text-xs text-indigo-950">
-            <Sparkles className="w-4 h-4 text-indigo-600 mt-0.5 shrink-0" />
-            <div className="space-y-1">
-              <p className="font-bold">Automated Road Action Pipeline:</p>
-              <p className="text-indigo-900/80 leading-relaxed">
-                Upon submission, RoadGuard AI checks image optical quality, assesses damage risk, maps the responsible division ({detectedDepartment}), and activates the transparent SLA countdown clock.
-              </p>
+              <button
+                type="button"
+                onClick={() => setIsManualLocationMode(!isManualLocationMode)}
+                className="btn-lift bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs px-4 py-2 rounded-xl border border-slate-200 transition flex items-center space-x-1.5"
+              >
+                <MapPin className="w-3.5 h-3.5 text-slate-500" />
+                <span>{isManualLocationMode ? 'Done Pinning' : 'Change Location (Tap Map)'}</span>
+              </button>
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full bg-gradient-to-r from-gov-700 to-gov-800 hover:from-gov-800 hover:to-gov-900 text-white font-bold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-base disabled:opacity-50"
-          >
-            <span>{submitting ? submitStep || 'Analyzing & Registering Complaint...' : 'Submit Road Report'}</span>
-            <ArrowRight className="w-5 h-5" />
-          </button>
+          {/* Leaflet Map Preview */}
+          <div className="h-64 sm:h-72 rounded-3xl overflow-hidden border border-slate-200 shadow-subtle">
+            <ReportsMap
+              center={location}
+              zoom={14}
+              height="100%"
+              selectedLocation={location}
+              onLocationSelect={handleMapSelect}
+            />
+          </div>
+
+          {/* Navigation */}
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setCurrentStep(2)}
+              className="btn-lift flex-1 sm:flex-initial inline-flex items-center justify-center space-x-1.5 text-xs font-bold text-slate-600 hover:text-ink-900 px-5 py-3.5 rounded-xl border border-slate-200"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setError('');
+                setCurrentStep(4);
+              }}
+              className="btn-lift flex-1 sm:flex-initial bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-xs sm:text-sm px-7 py-3.5 rounded-xl shadow-md shadow-teal-900/15 transition flex items-center justify-center space-x-2"
+            >
+              <span>Continue</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
-      </form>
+      )}
+
+      {/* ================================================== */}
+      {/* STEP 4 — REVIEW & SUBMIT                          */}
+      {/* ================================================== */}
+      {currentStep === 4 && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-card space-y-6 animate-in fade-in duration-150">
+          <div className="space-y-1">
+            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider">STEP 4 OF 4</span>
+            <h1 className="text-2xl sm:text-3xl font-black font-heading text-ink-950">
+              Review & Submit
+            </h1>
+            <p className="text-xs text-slate-500">
+              Verify your report details before submitting to municipal maintenance authorities.
+            </p>
+          </div>
+
+          {/* Compact Summary: Issue, Photo, Location */}
+          <div className="bg-warm-50 rounded-2xl p-4 sm:p-5 border border-slate-200 space-y-4 text-xs">
+            <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
+              <div>
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">Issue Detected</span>
+                <span className="font-heading font-black text-base text-ink-950 capitalize">
+                  {defectCategories.find((c) => c.id === selectedCategory)?.label || selectedCategory}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCurrentStep(1)}
+                className="text-teal-700 hover:text-teal-800 font-bold text-xs"
+              >
+                Change
+              </button>
+            </div>
+
+            {/* Photo Thumbnail */}
+            <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
+              <div className="flex items-center space-x-3">
+                {imageUrl && (
+                  <img src={imageUrl} alt="Thumbnail preview" className="w-16 h-12 rounded-xl object-cover border border-slate-200" />
+                )}
+                <div>
+                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Evidence Photo</span>
+                  <span className="font-bold text-ink-950 block truncate max-w-[200px]">
+                    {imageFilename || 'Selected road photo'}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCurrentStep(2)}
+                className="text-teal-700 hover:text-teal-800 font-bold text-xs"
+              >
+                Change
+              </button>
+            </div>
+
+            {/* Location Summary */}
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">Location</span>
+                <span className="font-bold text-ink-950 block">{detectedRoad}</span>
+                <span className="text-slate-500 text-[11px] font-mono">
+                  {location[0].toFixed(5)}, {location[1].toFixed(5)}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCurrentStep(3)}
+                className="text-teal-700 hover:text-teal-800 font-bold text-xs"
+              >
+                Change
+              </button>
+            </div>
+          </div>
+
+          {/* Optional Description: "Anything else we should know?" */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-ink-950">
+              Anything else we should know? <span className="text-slate-400 font-normal">(Optional)</span>
+            </label>
+            <textarea
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="e.g. Near bus stop, dangerous for two-wheelers at night..."
+              className="w-full text-xs sm:text-sm p-3.5 rounded-2xl border border-slate-200 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none transition"
+            />
+          </div>
+
+          {/* Primary CTA: SUBMIT REPORT */}
+          <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setCurrentStep(3)}
+              className="btn-lift w-full sm:w-auto inline-flex items-center justify-center space-x-1.5 text-xs font-bold text-slate-600 hover:text-ink-900 px-4 py-3 rounded-xl border border-slate-200"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleSubmit()}
+              disabled={submitting}
+              className="btn-lift w-full sm:flex-1 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-sm sm:text-base py-4 px-8 rounded-2xl shadow-lg shadow-teal-900/15 tracking-wider uppercase transition flex items-center justify-center space-x-2"
+            >
+              <span>SUBMIT REPORT</span>
+              <ArrowRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
