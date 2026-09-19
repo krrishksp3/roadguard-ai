@@ -9,6 +9,7 @@ import { JurisdictionService } from '../services/jurisdiction/jurisdictionServic
 import { RoadHealthService } from '../services/roadHealth/roadHealthService';
 import { SLAService } from '../services/sla/slaService';
 import { NotificationService } from '../services/notification/notificationService';
+import { isAcceptedRoadDamageClass } from '../services/ai/schemas';
 
 let reportCounter = 100;
 
@@ -47,23 +48,33 @@ export class ReportController {
       const uniqueSuffix = Math.floor(1000 + Math.random() * 9000);
       const reportId = `RG-MRT-2026-${String(count + 1).padStart(2, '0')}${uniqueSuffix}`;
 
-      // 1. Jurisdiction & Road Segment Resolution
-      const jurisdiction = await JurisdictionService.resolveJurisdiction(data.latitude, data.longitude);
-
-      // 2. AI Road Damage Classification — Image is Primary Signal
+      // 1. AI Road Damage Classification — Image is Primary Signal (Evaluated BEFORE any jurisdiction/assignment)
       let aiResult;
       try {
         aiResult = await aiService.analyzeRoadDamage(data.imageUrl, data.description, data.damageTypeHint, data.imageFilename);
       } catch (err) {
-        console.error('[ReportController] AI analysis failure, rejecting unverified evidence:', err);
+        console.error('[ReportController] AI analysis error:', err);
+        // If cloud AI provider was explicitly configured (Gemini/OpenAI), do NOT silently fallback or fake a report.
+        if (!aiService.isDemo()) {
+          res.status(503).json({
+            success: false,
+            message: `AI Vision analysis failed: ${(err as Error).message}`,
+            aiProvider: aiService.getProviderName(),
+          });
+          return;
+        }
+
         aiResult = {
+          damageDetected: false,
           validRoadDamage: false,
           classification: 'INVALID_EVIDENCE' as const,
-          damageType: 'other' as const,
-          severity: 'low' as const,
+          damageType: 'NO_ROAD_DAMAGE' as const,
+          severity: 'NONE' as const,
+          safetyRisk: 'NONE' as const,
           confidence: 0,
           visibleDamage: false,
           roadSafetyRisk: 0,
+          evidenceReason: 'AI verification could not validate pavement damage in the uploaded photograph.',
           description: 'Invalid road-damage evidence: AI verification could not validate pavement damage in the uploaded photograph.',
           recommendedAction: 'No civil action required. Report cancelled at intake due to invalid evidence.',
           cancellationReason: 'The uploaded image does not appear to show a road/pavement defect.',
@@ -71,10 +82,16 @@ export class ReportController {
         };
       }
 
-      // 3. IMAGE-FIRST VALIDATION CHECK — STOP WORKFLOW IMMEDIATELY IF INVALID ROAD-DAMAGE EVIDENCE
-      const isInvalidEvidence = !aiResult.validRoadDamage || aiResult.classification === 'INVALID_EVIDENCE' || aiResult.roadSafetyRisk === 0;
+      // 2. HARD IMAGE-FIRST VALIDATION CHECK — STOP WORKFLOW IMMEDIATELY IF NOT VALID ROAD DAMAGE
+      const isAcceptedClass = isAcceptedRoadDamageClass(aiResult.damageType);
+      const isDamageValid = Boolean(
+        aiResult.damageDetected === true &&
+        isAcceptedClass &&
+        aiResult.classification === 'VALID_ROAD_DAMAGE' &&
+        aiResult.roadSafetyRisk > 0
+      );
 
-      if (isInvalidEvidence) {
+      if (!isDamageValid) {
         const cancelledReport = await prisma.roadReport.create({
           data: {
             id: reportId,
@@ -88,10 +105,10 @@ export class ReportController {
             imageMimeType: data.imageMimeType || null,
             latitude: data.latitude,
             longitude: data.longitude,
-            address: data.address || `${jurisdiction.roadSegmentName || 'Meerut Road Network'}, Meerut, UP`,
+            address: data.address || 'Meerut Road Network, Meerut, UP',
             description: data.description,
-            damageType: 'other',
-            severity: 'low',
+            damageType: aiResult.damageType || 'NO_ROAD_DAMAGE',
+            severity: 'NONE',
             status: 'CANCELLED',
             roadSegmentId: null,
             departmentId: null,
@@ -103,19 +120,19 @@ export class ReportController {
             isOverdue: false,
             aiAnalysis: {
               create: {
-                damageType: 'other',
-                severity: 'low',
+                damageType: aiResult.damageType || 'NO_ROAD_DAMAGE',
+                severity: 'NONE',
                 confidence: 0,
                 visibleDamage: false,
                 roadSafetyRisk: 0,
-                description: aiResult.description || 'INVALID ROAD-DAMAGE EVIDENCE: No supported road damage detected in the uploaded photograph.',
-                recommendedAction: 'No civil action required. Report cancelled at intake due to invalid evidence.',
-                isAcceptableQuality: false,
-                qualityScore: 0,
-                isBlurry: false,
-                isTooDark: false,
-                hasRoadVisible: false,
-                qualityWarning: 'Invalid road-damage evidence. Uploaded photograph is not related to a supported road safety issue.',
+                description: aiResult.description || 'Road damage could not be verified from this image.',
+                recommendedAction: aiResult.recommendedAction || 'No civil action required. Report cancelled at intake due to invalid evidence.',
+                isAcceptableQuality: aiResult.imageQuality?.isAcceptable ?? false,
+                qualityScore: aiResult.imageQuality?.qualityScore ?? 0,
+                isBlurry: aiResult.imageQuality?.isBlurry ?? false,
+                isTooDark: aiResult.imageQuality?.isTooDark ?? false,
+                hasRoadVisible: aiResult.imageQuality?.hasRoadVisible ?? false,
+                qualityWarning: aiResult.imageQuality?.warningMessage || 'No supported road distress identified in photograph.',
               },
             },
             priorityAssessment: {
@@ -141,7 +158,7 @@ export class ReportController {
                 {
                   status: 'CANCELLED',
                   label: 'Report Cancelled — Invalid Evidence',
-                  description: 'No supported road damage was detected in the uploaded photograph. Workflow stopped at intake.',
+                  description: 'Road damage could not be verified from this image. Workflow stopped at intake.',
                 },
               ],
             },
@@ -156,26 +173,37 @@ export class ReportController {
         });
 
         // STOP WORKFLOW:
+        // No jurisdiction routing
         // No risk score calculation (NO RISK FOUND)
+        // No duplicate detection
         // No department assignment
         // No authority notification
         // No admin notification
         // No road segment health recalculation
         res.status(201).json({
           success: true,
+          damageDetected: false,
           validRoadDamage: false,
-          classification: 'INVALID_EVIDENCE',
-          damageType: null,
+          classification: aiResult.classification || 'NO_DAMAGE_FOUND',
+          damageType: 'NONE',
+          priority: 'NONE',
+          severity: 'NONE',
+          safetyRisk: 'NONE',
           riskScore: 0,
           status: 'CANCELLED',
-          reason: aiResult.cancellationReason || 'The uploaded image does not appear to show supported road damage.',
-          message: 'Report cancelled: The uploaded photograph does not appear to show supported road damage.',
+          evidenceReason: aiResult.evidenceReason || aiResult.cancellationReason || 'The uploaded photograph does not show supported road damage.',
+          reason: aiResult.evidenceReason || aiResult.cancellationReason || 'The uploaded photograph does not show supported road damage.',
+          message: 'Road damage could not be verified from this image. Your report was not forwarded to the authority because the uploaded image did not provide sufficient road-damage evidence.',
           data: cancelledReport,
         });
         return;
       }
 
-      // 4. Duplicate Detection (Valid road reports only)
+      // 3. ONLY IF VALID ROAD DAMAGE:
+      // A. Jurisdiction & Road Segment Resolution
+      const jurisdiction = await JurisdictionService.resolveJurisdiction(data.latitude, data.longitude);
+
+      // B. Duplicate Detection (Valid road reports only)
       const duplicateCheck = await DuplicateDetector.checkForDuplicates(
         data.latitude,
         data.longitude,
@@ -183,20 +211,22 @@ export class ReportController {
         data.imageFilename
       );
 
-      // 5. SLA Calculation
+      // C. SLA Calculation
       const slaTargetHours = SLAService.getTargetHours(aiResult.severity);
       const now = new Date();
       const slaDueAt = SLAService.calculateDueDate(now, aiResult.severity);
 
-      // 6. Dynamic Road Risk Score (0 - 100)
-      // Deterministic baseline ensures exact same risk for the same image evidence
+      // D. Dynamic Road Risk Score (0 - 100)
       const priorityResult = RoadRiskEngine.calculate({
+        damageDetected: true,
+        damageType: aiResult.damageType,
+        classification: aiResult.classification,
         severity: aiResult.severity,
         roadSafetyRisk: aiResult.roadSafetyRisk,
         aiConfidence: aiResult.confidence,
-        nearbyReportsCount: 0,
+        nearbyReportsCount: duplicateCheck.nearbyReportsCount,
         roadImportance: 'MAJOR_DISTRICT',
-        isRecurringHotspot: false,
+        isRecurringHotspot: jurisdiction.isRecurringHotspot,
         roadHealthScore: 70,
         hoursSinceReported: 0,
         slaTargetHours,
@@ -440,6 +470,24 @@ export class ReportController {
         return;
       }
 
+      // Enforce strict citizen ownership: A citizen can only view their own report
+      if (authUser && authUser.role === 'CITIZEN' && report.userId !== authUser.id) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied: You are not authorized to view another citizen\'s report.',
+        });
+        return;
+      }
+
+      // Cancelled intake submissions are only visible to their creator
+      if (report.status === 'CANCELLED' && (!authUser || authUser.id !== report.userId)) {
+        res.status(404).json({
+          success: false,
+          message: 'Report not accessible (Cancelled intake submission)',
+        });
+        return;
+      }
+
       const slaStatus = SLAService.evaluateOverdueStatus(report.createdAt, report.slaDueAt, report.status);
 
       res.status(200).json({
@@ -463,14 +511,8 @@ export class ReportController {
         return;
       }
 
-      const user = await prisma.user.findUnique({ where: { id: userId } });
-      const userIds = [userId];
-      if ((user?.email === 'citizen@roadguard.demo' || user?.role === 'CITIZEN') && !userIds.includes('user-citizen-01')) {
-        userIds.push('user-citizen-01');
-      }
-
       const reports = await prisma.roadReport.findMany({
-        where: { userId: { in: userIds } },
+        where: { userId },
         include: {
           aiAnalysis: true,
           priorityAssessment: true,

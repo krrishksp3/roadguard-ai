@@ -403,78 +403,122 @@ export const ReportDetailPage: React.FC = () => {
       </div>
 
       {/* 4. AI ASSESSMENT & RISK METRICS (Section 15: Keep AI explanation short) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Dynamic Road Risk Score */}
-        <RiskScoreMeter
-          score={report.riskScore}
-          priorityAssessment={report.priorityAssessment || undefined}
-        />
-
-        {/* AI ASSESSMENT CARD */}
-        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-card space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <span className="text-xs font-black uppercase tracking-wider text-ink-950 flex items-center space-x-1.5">
-              <Sparkles className="w-4 h-4 text-teal-600" />
-              <span>AI ASSESSMENT</span>
-            </span>
-            <span className="text-[10px] bg-teal-50 text-teal-800 font-bold px-2.5 py-0.5 rounded-full border border-teal-200">
-              AI-assisted assessment
-            </span>
+      {report.status === 'CANCELLED' ? (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-card space-y-5">
+          <div className="flex items-center space-x-3 text-amber-600">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-heading font-black text-ink-950 text-base sm:text-lg">
+                Road damage could not be verified from this image.
+              </h3>
+              <p className="text-xs text-slate-500">
+                Your report was not forwarded to the authority because the uploaded image did not provide sufficient road-damage evidence.
+              </p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-            <div className="bg-warm-50 p-3 rounded-2xl border border-slate-200">
-              <span className="text-slate-400 block text-[10px] font-bold uppercase">Issue</span>
-              <span className="font-black text-ink-950 capitalize text-sm">
-                {report.aiAnalysis?.damageType?.replace(/_/g, ' ') || report.damageType?.replace(/_/g, ' ')}
-              </span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+              <span className="text-slate-400 block text-[10px] font-bold uppercase">Evidence Status</span>
+              <span className="font-black text-rose-700 text-sm">Not Verified</span>
             </div>
-
-            <div className="bg-warm-50 p-3 rounded-2xl border border-slate-200">
-              <span className="text-slate-400 block text-[10px] font-bold uppercase">Severity</span>
-              <span className="font-black text-ink-950 capitalize text-sm">
-                {report.aiAnalysis?.severity || report.severity}
-              </span>
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+              <span className="text-slate-400 block text-[10px] font-bold uppercase">Risk Score</span>
+              <span className="font-black text-slate-900 text-sm">0</span>
             </div>
-
-            <div className="bg-warm-50 p-3 rounded-2xl border border-slate-200">
-              <span className="text-slate-400 block text-[10px] font-bold uppercase">Safety Risk</span>
-              <span className="font-black text-ink-950 capitalize text-sm">
-                {report.aiAnalysis?.roadSafetyRisk !== undefined
-                  ? (report.aiAnalysis.roadSafetyRisk >= 70 ? 'High' : report.aiAnalysis.roadSafetyRisk >= 40 ? 'Moderate' : 'Low')
-                  : (report.riskScore >= 70 ? 'High' : 'Moderate')}
-              </span>
-            </div>
-
-            <div className="bg-warm-50 p-3 rounded-2xl border border-slate-200">
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
               <span className="text-slate-400 block text-[10px] font-bold uppercase">Priority</span>
-              <span className="font-black text-teal-700 text-sm">
-                {report.riskScore} / 100
+              <span className="font-black text-slate-900 text-sm">None</span>
+            </div>
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+              <span className="text-slate-400 block text-[10px] font-bold uppercase">Authority Assignment</span>
+              <span className="font-black text-slate-600 text-sm">Not Created</span>
+            </div>
+          </div>
+
+          {report.aiAnalysis?.description && (
+            <div className="p-3.5 bg-warm-50 rounded-2xl border border-slate-200 text-xs text-slate-600">
+              <span className="font-bold text-slate-700 mr-1.5">Intake Verification Note:</span>
+              {report.aiAnalysis.description}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Dynamic Road Risk Score */}
+          <RiskScoreMeter
+            score={report.riskScore}
+            priorityAssessment={report.priorityAssessment || undefined}
+          />
+
+          {/* AI ASSESSMENT CARD */}
+          <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-card space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <span className="text-xs font-black uppercase tracking-wider text-ink-950 flex items-center space-x-1.5">
+                <Sparkles className="w-4 h-4 text-teal-600" />
+                <span>AI ASSESSMENT</span>
+              </span>
+              <span className="text-[10px] bg-teal-50 text-teal-800 font-bold px-2.5 py-0.5 rounded-full border border-teal-200">
+                AI-assisted assessment
               </span>
             </div>
 
-            <div className="bg-warm-50 p-3 rounded-2xl border border-slate-200">
-              <span className="text-slate-400 block text-[10px] font-bold uppercase">Duplicate</span>
-              <span className="font-black text-ink-950 text-sm">
-                {report.isDuplicate ? 'Yes' : 'No'}
-              </span>
-            </div>
-
-            {report.aiAnalysis?.confidence !== undefined && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
               <div className="bg-warm-50 p-3 rounded-2xl border border-slate-200">
-                <span className="text-slate-400 block text-[10px] font-bold uppercase">Confidence</span>
-                <span className="font-black text-teal-700 text-sm">
-                  {Math.round(report.aiAnalysis.confidence * 100)}%
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">Issue</span>
+                <span className="font-black text-ink-950 capitalize text-sm">
+                  {report.aiAnalysis?.damageType?.replace(/_/g, ' ') || report.damageType?.replace(/_/g, ' ')}
                 </span>
               </div>
-            )}
-          </div>
 
-          <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-100 flex items-center justify-between">
-            <span className="italic">Final action is reviewed by the responsible authority.</span>
+              <div className="bg-warm-50 p-3 rounded-2xl border border-slate-200">
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">Severity</span>
+                <span className="font-black text-ink-950 capitalize text-sm">
+                  {report.aiAnalysis?.severity || report.severity}
+                </span>
+              </div>
+
+              <div className="bg-warm-50 p-3 rounded-2xl border border-slate-200">
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">Safety Risk</span>
+                <span className="font-black text-ink-950 capitalize text-sm">
+                  {report.aiAnalysis?.roadSafetyRisk !== undefined
+                    ? (report.aiAnalysis.roadSafetyRisk >= 70 ? 'High' : report.aiAnalysis.roadSafetyRisk >= 40 ? 'Moderate' : 'Low')
+                    : (report.riskScore >= 70 ? 'High' : 'Moderate')}
+                </span>
+              </div>
+
+              <div className="bg-warm-50 p-3 rounded-2xl border border-slate-200">
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">Priority</span>
+                <span className="font-black text-teal-700 text-sm">
+                  {report.riskScore} / 100
+                </span>
+              </div>
+
+              <div className="bg-warm-50 p-3 rounded-2xl border border-slate-200">
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">Duplicate</span>
+                <span className="font-black text-ink-950 text-sm">
+                  {report.isDuplicate ? 'Yes' : 'No'}
+                </span>
+              </div>
+
+              {report.aiAnalysis?.confidence !== undefined && (
+                <div className="bg-warm-50 p-3 rounded-2xl border border-slate-200">
+                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Confidence</span>
+                  <span className="font-black text-teal-700 text-sm">
+                    {Math.round(report.aiAnalysis.confidence * 100)}%
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-100 flex items-center justify-between">
+              <span className="italic">Final action is reviewed by the responsible authority.</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* 5. AUDITABLE INCIDENT TIMELINE */}
       <ComplaintTimeline timeline={report.timeline} currentStatus={report.status} />

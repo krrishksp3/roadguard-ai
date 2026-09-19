@@ -281,7 +281,7 @@ describe('RoadGuard API Endpoints', () => {
         expect(res.body.validRoadDamage).toBe(false);
         expect(res.body.status).toBe('CANCELLED');
         expect(res.body.data.riskScore).toBe(0);
-        expect(res.body.data.damageType).toBe('other');
+        expect(['NON_ROAD_IMAGE', 'other']).toContain(res.body.data.damageType);
         expect(res.body.data.departmentId).toBeNull();
       }
     });
@@ -483,6 +483,117 @@ describe('RoadGuard API Endpoints', () => {
       expect(closeRes.body.data.report.status).toBe('RESOLVED');
       const hasResolvedTimeline = closeRes.body.data.report.timeline.some((e: any) => e.status === 'RESOLVED');
       expect(hasResolvedTimeline).toBe(true);
+    });
+  });
+
+  describe('Hard Image-First Validation Gate End-to-End API Enforcement', () => {
+    let citizenToken: string;
+    let authorityToken: string;
+
+    beforeAll(async () => {
+      const cRes = await request(app).post('/api/auth/login').send({ email: 'citizen@roadguard.demo', password: 'citizen123' });
+      citizenToken = cRes.body.data.token;
+
+      const aRes = await request(app).post('/api/auth/login').send({ email: 'authority@roadguard.demo', password: 'authority123' });
+      authorityToken = aRes.body.data.token;
+    });
+
+    it('Normal road image is rejected as NO_DAMAGE_FOUND and never dispatched to authority', async () => {
+      const createRes = await request(app)
+        .post('/api/reports')
+        .set('Authorization', `Bearer ${citizenToken}`)
+        .send({
+          latitude: 28.9845,
+          longitude: 77.7064,
+          address: 'Delhi Road, Meerut',
+          description: 'large pothole on road', // Citizen claims pothole!
+          imageUrl: '/uploads/normal_road_surface.jpg',
+          imageFilename: 'normal_road_surface.jpg',
+          damageTypeHint: 'pothole', // Citizen selected pothole!
+        });
+
+      expect(createRes.status).toBe(201);
+      expect(createRes.body.success).toBe(true);
+      expect(createRes.body.damageDetected).toBe(false);
+      expect(createRes.body.validRoadDamage).toBe(false);
+      expect(createRes.body.classification).toBe('NO_DAMAGE_FOUND');
+      expect(createRes.body.riskScore).toBe(0);
+      expect(createRes.body.priority).toBe('NONE');
+      expect(createRes.body.status).toBe('CANCELLED');
+      expect(createRes.body.message).toContain('Road damage could not be verified from this image');
+
+      const cancelledReportId = createRes.body.data.id;
+      expect(createRes.body.data.departmentId).toBeNull();
+      expect(createRes.body.data.roadSegmentId).toBeNull();
+      expect(createRes.body.data.slaTargetHours).toBe(0);
+
+      // Authority worklist query must NOT include this cancelled report
+      const authList = await request(app)
+        .get('/api/reports')
+        .set('Authorization', `Bearer ${authorityToken}`);
+      expect(authList.status).toBe(200);
+      const reportInAuthList = authList.body.data.find((r: any) => r.id === cancelledReportId);
+      expect(reportInAuthList).toBeUndefined();
+
+      // Authority direct fetch must be forbidden/not accessible
+      const authDetail = await request(app)
+        .get(`/api/reports/${cancelledReportId}`)
+        .set('Authorization', `Bearer ${authorityToken}`);
+      expect(authDetail.status).toBe(404);
+
+      // Submitting citizen CAN view their own cancelled report in My Reports
+      const citizenDetail = await request(app)
+        .get(`/api/reports/${cancelledReportId}`)
+        .set('Authorization', `Bearer ${citizenToken}`);
+      expect(citizenDetail.status).toBe(200);
+      expect(citizenDetail.body.data.status).toBe('CANCELLED');
+      expect(citizenDetail.body.data.riskScore).toBe(0);
+    });
+
+    it('Malicious submission with damageType POTHOLE but non-road image cannot bypass validation gate', async () => {
+      const bypassAttempt = await request(app)
+        .post('/api/reports')
+        .set('Authorization', `Bearer ${citizenToken}`)
+        .send({
+          latitude: 28.9845,
+          longitude: 77.7064,
+          address: 'Delhi Road, Meerut',
+          description: 'Emergency critical pothole',
+          imageUrl: '/uploads/student_id_card.png',
+          imageFilename: 'student_id_card.png',
+          damageType: 'POTHOLE',
+          severity: 'CRITICAL',
+          damageTypeHint: 'pothole',
+        });
+
+      expect(bypassAttempt.status).toBe(201);
+      expect(bypassAttempt.body.damageDetected).toBe(false);
+      expect(bypassAttempt.body.classification).toBe('NON_ROAD_IMAGE');
+      expect(bypassAttempt.body.riskScore).toBe(0);
+      expect(bypassAttempt.body.status).toBe('CANCELLED');
+      expect(bypassAttempt.body.data.departmentId).toBeNull();
+    });
+
+    it('Bus/vehicle scene without road damage is rejected with risk 0 and no assignment', async () => {
+      const busSceneRes = await request(app)
+        .post('/api/reports')
+        .set('Authorization', `Bearer ${citizenToken}`)
+        .send({
+          latitude: 28.9845,
+          longitude: 77.7064,
+          address: 'Meerut Bypass',
+          description: 'Bus driving on highway',
+          imageUrl: '/uploads/city_bus_traffic_scene.jpg',
+          imageFilename: 'city_bus_traffic_scene.jpg',
+          damageTypeHint: 'surface_deterioration',
+        });
+
+      expect(busSceneRes.status).toBe(201);
+      expect(busSceneRes.body.damageDetected).toBe(false);
+      expect(busSceneRes.body.classification).toBe('NO_DAMAGE_FOUND');
+      expect(busSceneRes.body.riskScore).toBe(0);
+      expect(busSceneRes.body.status).toBe('CANCELLED');
+      expect(busSceneRes.body.data.departmentId).toBeNull();
     });
   });
 });

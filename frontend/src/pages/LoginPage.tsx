@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../services/api';
 import { Shield, Lock, Mail, ArrowRight, UserCheck, AlertCircle } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
@@ -8,16 +9,30 @@ export const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isWakingServer, setIsWakingServer] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Send background wake-up ping to cloud server as soon as user opens login page
+  useEffect(() => {
+    api.warmupBackend();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
     setError('');
     setLoading(true);
+    setIsWakingServer(false);
+
+    // If request takes longer than 4s, notify user that cloud instance is spinning up
+    const wakeTimer = setTimeout(() => {
+      setIsWakingServer(true);
+    }, 4000);
+
     try {
       const user = await login(email.trim(), password);
+      clearTimeout(wakeTimer);
       if (user?.role === 'ADMIN') {
         navigate('/admin');
       } else if (user?.role === 'AUTHORITY') {
@@ -26,9 +41,12 @@ export const LoginPage: React.FC = () => {
         navigate('/my-reports');
       }
     } catch (err: any) {
+      clearTimeout(wakeTimer);
       setError(err.message || 'Login failed. Please verify credentials.');
     } finally {
+      clearTimeout(wakeTimer);
       setLoading(false);
+      setIsWakingServer(false);
     }
   };
 
@@ -121,9 +139,14 @@ export const LoginPage: React.FC = () => {
             disabled={loading}
             className="btn-lift w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-extrabold py-3.5 rounded-xl shadow-md shadow-teal-900/15 transition flex items-center justify-center space-x-2 text-xs sm:text-sm uppercase tracking-wider disabled:opacity-50"
           >
-            <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
+            <span>{loading ? (isWakingServer ? 'Connecting to Cloud Service...' : 'Authenticating...') : 'Sign In'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
+          {isWakingServer && (
+            <p className="text-center text-[11px] text-teal-700 font-medium animate-pulse">
+              Waking up cloud server instance... Please hold on.
+            </p>
+          )}
         </form>
 
         <p className="text-center text-xs text-slate-500">

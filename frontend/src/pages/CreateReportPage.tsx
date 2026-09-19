@@ -568,21 +568,41 @@ export const CreateReportPage: React.FC = () => {
   if (cancelledReport) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12">
-        <div className="bg-white rounded-3xl p-8 border border-rose-200 shadow-float space-y-6 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-inner">
+        <div className="bg-white rounded-3xl p-8 border border-slate-200/90 shadow-float space-y-6 text-center animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto shadow-inner">
             <ShieldAlert className="w-8 h-8" />
           </div>
 
-          <div className="space-y-1.5">
-            <div className="inline-flex items-center space-x-1.5 bg-rose-100 text-rose-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-              <span>✕ Report Cancelled</span>
+          <div className="space-y-2">
+            <div className="inline-flex items-center space-x-1.5 bg-rose-50 text-rose-800 border border-rose-200 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+              <span>✕ Intake Verification Stopped</span>
             </div>
             <h2 className="text-2xl font-black font-heading text-ink-950">
-              Invalid Road-Damage Evidence
+              Road damage could not be verified from this image.
             </h2>
-            <p className="text-xs text-slate-600 max-w-md mx-auto">
-              No supported road damage was detected in the uploaded photograph. Please upload a clear photo of asphalt defects, potholes, or waterlogging.
+            <p className="text-sm text-slate-600 max-w-lg mx-auto leading-relaxed">
+              Your report was not forwarded to the authority because the uploaded image did not provide sufficient road-damage evidence.
             </p>
+          </div>
+
+          {/* Verification Status Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-left">
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+              <span className="text-[10px] font-bold uppercase text-slate-400 block">Evidence Status</span>
+              <span className="font-black text-rose-700 text-xs sm:text-sm">Not Verified</span>
+            </div>
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+              <span className="text-[10px] font-bold uppercase text-slate-400 block">Risk Score</span>
+              <span className="font-black text-slate-900 text-xs sm:text-sm">0</span>
+            </div>
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+              <span className="text-[10px] font-bold uppercase text-slate-400 block">Priority</span>
+              <span className="font-black text-slate-900 text-xs sm:text-sm">None</span>
+            </div>
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+              <span className="text-[10px] font-bold uppercase text-slate-400 block">Authority Assignment</span>
+              <span className="font-black text-slate-600 text-xs sm:text-sm">Not Created</span>
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-2">

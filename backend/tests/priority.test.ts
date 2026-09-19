@@ -87,4 +87,86 @@ describe('RoadRiskEngine', () => {
     expect(res1.riskLevel).toBe(res2.riskLevel);
     expect(res2.riskLevel).toBe(res3.riskLevel);
   });
+
+  describe('Risk Engine Hard Preconditions — Rejected Classes & Negative Gates', () => {
+    it('strictly returns riskScore 0 and aborts calculation for NO_DAMAGE_FOUND', () => {
+      const result = RoadRiskEngine.calculate({
+        damageDetected: false,
+        damageType: 'NO_ROAD_DAMAGE',
+        classification: 'NO_DAMAGE_FOUND',
+        severity: 'NONE',
+        roadSafetyRisk: 0,
+        aiConfidence: 0,
+        nearbyReportsCount: 0,
+        roadImportance: 'MAJOR_DISTRICT',
+        isRecurringHotspot: false,
+        roadHealthScore: 70,
+        hoursSinceReported: 0,
+        slaTargetHours: 0,
+      });
+
+      expect(result.overallScore).toBe(0);
+      expect(result.riskLevel).toBe('LOW');
+      expect(result.breakdown.severityScore).toBe(0);
+      expect(result.breakdown.safetyRiskScore).toBe(0);
+      expect(result.explanation[0]).toContain('NO ROAD DAMAGE VERIFIED');
+    });
+
+    it('strictly returns riskScore 0 for NON_ROAD_IMAGE', () => {
+      const result = RoadRiskEngine.calculate({
+        damageDetected: false,
+        damageType: 'NON_ROAD_IMAGE',
+        classification: 'NON_ROAD_IMAGE',
+        severity: 'NONE',
+        roadSafetyRisk: 0,
+        aiConfidence: 0,
+        nearbyReportsCount: 0,
+        roadImportance: 'HIGHWAY',
+        isRecurringHotspot: true,
+        roadHealthScore: 30,
+        hoursSinceReported: 10,
+        slaTargetHours: 24,
+      });
+
+      expect(result.overallScore).toBe(0);
+      expect(result.riskLevel).toBe('LOW');
+    });
+
+    it('strictly returns riskScore 0 for INSUFFICIENT_EVIDENCE', () => {
+      const result = RoadRiskEngine.calculate({
+        damageDetected: false,
+        damageType: 'INSUFFICIENT_EVIDENCE',
+        classification: 'INSUFFICIENT_EVIDENCE',
+        severity: 'NONE',
+        roadSafetyRisk: 0,
+        aiConfidence: 0,
+        nearbyReportsCount: 0,
+        roadImportance: 'ARTERIAL',
+        isRecurringHotspot: false,
+        roadHealthScore: 60,
+        hoursSinceReported: 0,
+        slaTargetHours: 48,
+      });
+
+      expect(result.overallScore).toBe(0);
+    });
+
+    it('strictly returns riskScore 0 if damageDetected is false even if other fields are populated', () => {
+      const result = RoadRiskEngine.calculate({
+        damageDetected: false,
+        damageType: 'POTHOLE',
+        severity: 'critical',
+        roadSafetyRisk: 85,
+        aiConfidence: 0.9,
+        nearbyReportsCount: 2,
+        roadImportance: 'HIGHWAY',
+        isRecurringHotspot: true,
+        roadHealthScore: 40,
+        hoursSinceReported: 0,
+        slaTargetHours: 24,
+      });
+
+      expect(result.overallScore).toBe(0);
+    });
+  });
 });

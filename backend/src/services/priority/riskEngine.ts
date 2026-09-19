@@ -1,5 +1,10 @@
+import { isAcceptedRoadDamageClass, REJECTED_IMAGE_CLASSES } from '../ai/schemas';
+
 export interface RiskCalculationInput {
-  severity: string; // 'low' | 'medium' | 'high' | 'critical'
+  damageDetected?: boolean;
+  damageType?: string;
+  classification?: string;
+  severity: string; // 'low' | 'medium' | 'high' | 'critical' | 'NONE'
   roadSafetyRisk: number; // 0 - 100 (from AI)
   aiConfidence: number; // 0.0 - 1.0
   nearbyReportsCount: number; // nearby clustering
@@ -50,8 +55,22 @@ export class RoadRiskEngine {
   };
 
   public static calculate(input: RiskCalculationInput): RiskCalculationResult {
-    // Non-road or non-infrastructure images: strictly NO RISK / NOT APPLICABLE
-    if (input.roadSafetyRisk === 0 || input.severity === 'none') {
+    // HARD PRECONDITION: Risk scoring must NEVER execute for:
+    // NO_DAMAGE_FOUND, NON_ROAD_IMAGE, INSUFFICIENT_EVIDENCE
+    // Risk scoring may execute ONLY after:
+    // damageDetected === true AND damageType is an accepted road-hazard class.
+    const isAcceptedClass = input.damageType ? isAcceptedRoadDamageClass(input.damageType) : true;
+    const isRejectedClass = input.damageType ? (REJECTED_IMAGE_CLASSES as readonly string[]).includes(input.damageType.toUpperCase()) : false;
+    const isRejectedClassification = input.classification ? (REJECTED_IMAGE_CLASSES as readonly string[]).includes(input.classification.toUpperCase()) : false;
+
+    if (
+      input.damageDetected === false ||
+      input.roadSafetyRisk === 0 ||
+      input.severity?.toLowerCase() === 'none' ||
+      !isAcceptedClass ||
+      isRejectedClass ||
+      isRejectedClassification
+    ) {
       return {
         overallScore: 0,
         riskLevel: 'LOW',
@@ -64,11 +83,12 @@ export class RoadRiskEngine {
           slaUrgencyScore: 0,
         },
         explanation: [
-          'NO ROAD ISSUE FOUND: Image does not contain a recognizable road or infrastructure defect.',
-          'Road Risk Score: 0/100 (Not Applicable). No civic repair priority assigned.',
+          'NO ROAD DAMAGE VERIFIED: Risk calculation aborted at image evidence gate.',
+          'Road Risk Score: 0/100. No civil repair priority assigned.',
         ],
       };
     }
+
 
     const explanations: string[] = [];
 

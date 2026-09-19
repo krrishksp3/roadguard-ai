@@ -13,45 +13,32 @@ export function getBaseApiUrl(): string {
 
   // If in browser environment
   if (typeof window !== 'undefined') {
-    const isRender = window.location.hostname.includes('onrender.com');
-    // If deployed on Render and VITE_API_URL is missing or set to localhost/internal host
-    if (isRender) {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    // When running locally in browser, prefer local backend
+    if (isLocal) {
       if (!raw || raw.includes('localhost') || raw.includes('127.0.0.1')) {
-        return 'https://roadguard-backend-ghhb.onrender.com/api';
+        return 'http://localhost:5000/api';
       }
     }
   }
 
-  if (!raw) {
-    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-      return 'http://localhost:5000/api';
+  // If raw is explicitly provided and points to a valid external URL
+  if (raw && !raw.includes('localhost') && !raw.includes('127.0.0.1')) {
+    let clean = raw.replace(/\/+$/, '');
+    if (!clean.includes('.') && clean.includes('roadguard-backend')) {
+      clean = `https://${clean}.onrender.com`;
+    } else if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('/')) {
+      clean = `https://${clean}`;
     }
-    return '/api';
+    return clean.endsWith('/api') ? clean : `${clean}/api`;
   }
 
-  let clean = raw.replace(/\/+$/, '');
-
-  // If internal Render host was passed without .onrender.com (e.g. roadguard-backend-ghhb)
-  if (!clean.includes('.') && clean.includes('roadguard-backend')) {
-    clean = `https://${clean}.onrender.com`;
-  } else if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('/')) {
-    clean = `https://${clean}`;
+  // In any deployed production environment (Render, Vercel, Netlify, custom domain), default to live Render backend
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return 'https://roadguard-backend-ghhb.onrender.com/api';
   }
 
-  // Handle case where https://roadguard-backend-ghhb was passed without TLD
-  try {
-    if (clean.startsWith('http://') || clean.startsWith('https://')) {
-      const urlObj = new URL(clean);
-      if (!urlObj.hostname.includes('.') && urlObj.hostname.includes('roadguard-backend')) {
-        urlObj.hostname = `${urlObj.hostname}.onrender.com`;
-        clean = urlObj.toString().replace(/\/+$/, '');
-      }
-    }
-  } catch (_) {
-    // Ignore URL parse error
-  }
-
-  return clean.endsWith('/api') ? clean : `${clean}/api`;
+  return 'http://localhost:5000/api';
 }
 
 export function resolveImageUrl(url?: string | null): string {
@@ -88,10 +75,20 @@ function getAuthHeaders(): HeadersInit {
 }
 
 export const api = {
+  // Silent background wake-up ping for cloud container cold-starts
+  warmupBackend(): void {
+    try {
+      fetch(`${API_BASE_URL}/health`, { method: 'GET', mode: 'cors' }).catch(() => {});
+    } catch (_) {
+      // Ignore background warmup errors
+    }
+  },
+
   // Authentication
   async login(email: string, password: string): Promise<{ token: string; user: User }> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    // Render free-tier containers can take up to 45-60s to boot from spin-down
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
     try {
       const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
@@ -106,7 +103,7 @@ export const api = {
     } catch (err: any) {
       clearTimeout(timeoutId);
       if (err.name === 'AbortError') {
-        throw new Error('Login timed out. Please check your internet connection and try again.');
+        throw new Error('Login timed out. The cloud server may be waking up from sleep. Please try again.');
       }
       throw err;
     }
@@ -114,7 +111,7 @@ export const api = {
 
   async register(data: { name: string; email: string; password: string; role?: string }): Promise<{ token: string; user: User }> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
     try {
       const res = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
@@ -129,7 +126,7 @@ export const api = {
     } catch (err: any) {
       clearTimeout(timeoutId);
       if (err.name === 'AbortError') {
-        throw new Error('Registration timed out. Please check your internet connection and try again.');
+        throw new Error('Registration timed out. The cloud server may be waking up from sleep. Please try again.');
       }
       throw err;
     }

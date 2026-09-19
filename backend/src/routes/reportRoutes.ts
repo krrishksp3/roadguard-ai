@@ -5,10 +5,10 @@ import { authenticateJwt, optionalAuthenticateJwt, requireRoles } from '../middl
 const router = Router();
 
 // Public & Citizen reporting routes
-router.get('/', ReportController.getAllReports);
+router.get('/', optionalAuthenticateJwt, ReportController.getAllReports);
 router.get('/my-reports', authenticateJwt, ReportController.getCitizenReports);
 router.get('/my', authenticateJwt, ReportController.getCitizenReports);
-router.get('/:id', ReportController.getReportById);
+router.get('/:id', optionalAuthenticateJwt, ReportController.getReportById);
 router.post('/', optionalAuthenticateJwt, ReportController.createReport);
 
 // Authority status progression, escalation & after-repair evidence
