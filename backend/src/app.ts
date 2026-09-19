@@ -70,6 +70,7 @@ app.get('/api/health', (req, res) => {
     service: 'ROADGUARD AI Platform API',
     timestamp: new Date().toISOString(),
     aiProvider: aiService.getProviderName(),
+    aiDiagnostic: aiService.getDiagnosticInfo(),
     version: '1.0.0-sih2026',
   });
 });
