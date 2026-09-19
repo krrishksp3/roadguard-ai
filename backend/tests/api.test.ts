@@ -595,5 +595,66 @@ describe('RoadGuard API Endpoints', () => {
       expect(busSceneRes.body.status).toBe('CANCELLED');
       expect(busSceneRes.body.data.departmentId).toBeNull();
     });
+
+    it('E2E TEST: Ceiling fan photo with category Pothole is CANCELLED at intake with riskScore=0 and hidden from authority', async () => {
+      const fanRes = await request(app)
+        .post('/api/reports')
+        .set('Authorization', `Bearer ${citizenToken}`)
+        .send({
+          latitude: 28.9845,
+          longitude: 77.7064,
+          address: 'Civil Lines, Meerut',
+          description: 'Dangerous pothole in the road',
+          imageUrl: '/uploads/evidence-1789165596187-bb9e3e1b.png',
+          imageFilename: 'ceiling_fan.png',
+          damageTypeHint: 'pothole',
+        });
+
+      expect(fanRes.status).toBe(201);
+      expect(fanRes.body.damageDetected).toBe(false);
+      expect(fanRes.body.validRoadDamage).toBe(false);
+      expect(fanRes.body.classification).toBe('NON_ROAD_IMAGE');
+      expect(fanRes.body.riskScore).toBe(0);
+      expect(fanRes.body.status).toBe('CANCELLED');
+      expect(fanRes.body.data.departmentId).toBeNull();
+
+      // Authority cannot see this report
+      const authList = await request(app)
+        .get('/api/reports')
+        .set('Authorization', `Bearer ${authorityToken}`);
+      const inAuth = authList.body.data.find((r: any) => r.id === fanRes.body.data.id);
+      expect(inAuth).toBeUndefined();
+    });
+
+    it('E2E TEST: Genuine pothole image (multipart-uploaded filename) is VALID and proceeds to ASSIGNED with riskScore>0', async () => {
+      const potholeRes = await request(app)
+        .post('/api/reports')
+        .set('Authorization', `Bearer ${citizenToken}`)
+        .send({
+          latitude: 28.9845,
+          longitude: 77.7064,
+          address: 'Station Road, Meerut',
+          description: 'Large broken road cavity',
+          imageUrl: '/uploads/evidence-1789166146961-27aaf5ad.jpg',
+          imageFilename: 'evidence-1789166146961-27aaf5ad.jpg',
+          damageTypeHint: 'pothole',
+        });
+
+      expect([200, 201]).toContain(potholeRes.status);
+      expect(potholeRes.body.damageDetected).toBe(true);
+      expect(potholeRes.body.validRoadDamage).toBe(true);
+      expect(potholeRes.body.classification).toBe('VALID_ROAD_DAMAGE');
+      expect(potholeRes.body.riskScore).toBeGreaterThan(0);
+      expect(potholeRes.body.status).toBe('ASSIGNED');
+      expect(potholeRes.body.data.departmentId).not.toBeNull();
+
+      // Authority sees this report in worklist
+      const authList = await request(app)
+        .get('/api/reports')
+        .set('Authorization', `Bearer ${authorityToken}`);
+      const inAuth = authList.body.data.find((r: any) => r.id === potholeRes.body.data.id);
+      expect(inAuth).toBeDefined();
+      expect(inAuth.status).toBe('ASSIGNED');
+    });
   });
 });

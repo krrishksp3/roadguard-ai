@@ -29,10 +29,30 @@ export class OpenAIProvider implements AIProvider {
     }
 
     const imageEvidence = await resolveImageBuffer(input.imageUrl, input.imageFilename);
-    if (!imageEvidence) {
-      throw new Error(
-        `[OpenAIProvider] Unable to load image binary data from "${input.imageUrl}". Vision analysis requires valid image bytes.`
-      );
+    if (!imageEvidence || imageEvidence.buffer.length === 0) {
+      return {
+        damageDetected: false,
+        validRoadDamage: false,
+        classification: 'INSUFFICIENT_EVIDENCE',
+        damageType: 'INSUFFICIENT_EVIDENCE',
+        severity: 'NONE',
+        safetyRisk: 'NONE',
+        confidence: 0,
+        visibleDamage: false,
+        roadSafetyRisk: 0,
+        evidenceReason: `Unable to access or load image binary data from "${input.imageUrl || input.imageFilename || 'unspecified'}". Multimodal vision analysis could not be completed.`,
+        description: 'Insufficient photographic evidence: Image file could not be accessed or parsed for visual analysis.',
+        recommendedAction: 'Please submit a clear, accessible photograph of the road damage.',
+        cancellationReason: 'Road damage could not be verified. Image binary data is unreadable or unavailable.',
+        imageQuality: {
+          isAcceptable: false,
+          isBlurry: true,
+          isTooDark: false,
+          hasRoadVisible: false,
+          qualityScore: 0,
+          warningMessage: 'Image file unreadable or unavailable for multimodal vision analysis.',
+        },
+      };
     }
 
     const dataUrl = `data:${imageEvidence.mimeType};base64,${imageEvidence.buffer.toString('base64')}`;
@@ -92,8 +112,7 @@ If the image does not visibly show road, asphalt, or civil infrastructure distre
       parsed.classification !== 'NO_DAMAGE_FOUND' &&
       parsed.classification !== 'NON_ROAD_IMAGE' &&
       parsed.classification !== 'INSUFFICIENT_EVIDENCE' &&
-      parsed.classification !== 'INVALID_EVIDENCE' &&
-      parsed.roadSafetyRisk !== 0
+      parsed.classification !== 'INVALID_EVIDENCE'
     );
 
     if (!isDamage) {

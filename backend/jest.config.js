@@ -6,5 +6,6 @@ module.exports = {
   transform: {
     '^.+\\.ts$': ['ts-jest', { tsconfig: 'tsconfig.json' }]
   },
+  setupFiles: ['<rootDir>/tests/setup.ts'],
   verbose: true
 };

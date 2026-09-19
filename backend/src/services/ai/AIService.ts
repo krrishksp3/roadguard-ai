@@ -21,7 +21,7 @@ export class AIService {
 
     if (providerType === 'gemini') {
       const apiKey = (process.env.GEMINI_API_KEY || '').trim();
-      const model = (process.env.GEMINI_MODEL || 'gemini-2.5-flash').trim();
+      const model = (process.env.GEMINI_MODEL || 'gemini-3.6-flash').trim();
       const geminiProvider = new GeminiProvider(apiKey, model);
       this.provider = geminiProvider;
       this.diagnostic = {

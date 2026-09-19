@@ -23,7 +23,9 @@ services:
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: AI_PROVIDER
-        value: demo
+        value: gemini
+      - key: GEMINI_MODEL
+        value: gemini-3.6-flash
       - key: FRONTEND_URL
         value: "*"
 

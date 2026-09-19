@@ -9,7 +9,9 @@ export const ACCEPTED_ROAD_DAMAGE_CLASSES = [
   'WATERLOGGED_ROAD',
   'DEBRIS_ON_ROAD',
   'DAMAGED_DRAIN/CULVERT',
+  'DAMAGED_DRAIN_OR_CULVERT',
   'ROAD_OBSTRUCTION',
+  'OTHER_CLEAR_ROAD_SAFETY_HAZARD',
   'OTHER_ROAD_HAZARD',
   // Canonical / legacy lower-case aliases
   'pothole',

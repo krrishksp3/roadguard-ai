@@ -10,7 +10,7 @@ export class GeminiProvider implements AIProvider {
 
   constructor(apiKey?: string, model?: string) {
     this.apiKey = (apiKey || process.env.GEMINI_API_KEY || '').trim();
-    this.model = (model || process.env.GEMINI_MODEL || 'gemini-2.5-flash').trim();
+    this.model = (model || process.env.GEMINI_MODEL || 'gemini-3.6-flash').trim();
   }
 
   getModelName(): string {
@@ -30,10 +30,30 @@ export class GeminiProvider implements AIProvider {
 
     // 1. Resolve raw image bytes for multimodal input
     const imageEvidence = await resolveImageBuffer(input.imageUrl, input.imageFilename);
-    if (!imageEvidence) {
-      throw new Error(
-        `[GeminiProvider] Unable to load image binary data from "${input.imageUrl}". Multimodal vision analysis requires valid image bytes.`
-      );
+    if (!imageEvidence || imageEvidence.buffer.length === 0) {
+      return {
+        damageDetected: false,
+        validRoadDamage: false,
+        classification: 'INSUFFICIENT_EVIDENCE',
+        damageType: 'INSUFFICIENT_EVIDENCE',
+        severity: 'NONE',
+        safetyRisk: 'NONE',
+        confidence: 0,
+        visibleDamage: false,
+        roadSafetyRisk: 0,
+        evidenceReason: `Unable to access or load image binary data from "${input.imageUrl || input.imageFilename || 'unspecified'}". Multimodal vision analysis could not be completed.`,
+        description: 'Insufficient photographic evidence: Image file could not be accessed or parsed for visual analysis.',
+        recommendedAction: 'Please submit a clear, accessible photograph of the road damage.',
+        cancellationReason: 'Road damage could not be verified. Image binary data is unreadable or unavailable.',
+        imageQuality: {
+          isAcceptable: false,
+          isBlurry: true,
+          isTooDark: false,
+          hasRoadVisible: false,
+          qualityScore: 0,
+          warningMessage: 'Image file unreadable or unavailable for multimodal vision analysis.',
+        },
+      };
     }
 
     // 2. Construct prompt emphasizing image-first validation
@@ -61,35 +81,18 @@ Conversely, if the image shows genuine road damage (e.g. pothole, cracking, wate
       },
     ];
 
-    // 3. Dispatch multimodal request to Google Gemini API
+    // 3. Dispatch multimodal request to Google Gemini API with retry on HTTP 503 UNAVAILABLE
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
       this.model
     )}:generateContent?key=${encodeURIComponent(this.apiKey)}`;
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.1,
-        },
-      }),
+    const candidate = await this.dispatchGeminiRequestWithRetry(endpoint, {
+      contents: [{ role: 'user', parts }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.1,
+      },
     });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(
-        `[GeminiProvider] Google Gemini API request failed with HTTP ${response.status} (${this.model}): ${errText}`
-      );
-    }
-
-    const json = await response.json();
-    const candidate = json.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!candidate) {
-      throw new Error(`[GeminiProvider] Gemini model ${this.model} returned empty response.`);
-    }
 
     const cleanedJson = candidate.replace(/```json\n?|\n?```/gi, '').trim();
     let parsed: any;
@@ -107,8 +110,7 @@ Conversely, if the image shows genuine road damage (e.g. pothole, cracking, wate
       parsed.classification !== 'NO_DAMAGE_FOUND' &&
       parsed.classification !== 'NON_ROAD_IMAGE' &&
       parsed.classification !== 'INSUFFICIENT_EVIDENCE' &&
-      parsed.classification !== 'INVALID_EVIDENCE' &&
-      parsed.roadSafetyRisk !== 0
+      parsed.classification !== 'INVALID_EVIDENCE'
     );
 
     if (!isDamage) {
@@ -141,6 +143,9 @@ Conversely, if the image shows genuine road damage (e.g. pothole, cracking, wate
       parsed.validRoadDamage = true;
       parsed.classification = 'VALID_ROAD_DAMAGE';
       parsed.visibleDamage = true;
+      if (!parsed.roadSafetyRisk || parsed.roadSafetyRisk <= 0) {
+        parsed.roadSafetyRisk = parsed.severity === 'critical' ? 88 : parsed.severity === 'high' ? 75 : parsed.severity === 'medium' ? 55 : 45;
+      }
       parsed.description = parsed.description || 'Pavement defect detected and verified through visual analysis.';
       parsed.recommendedAction = parsed.recommendedAction || 'Inspect and execute patch repair in accordance with civil maintenance standards.';
       parsed.evidenceReason = parsed.evidenceReason || parsed.description || 'Pavement defect verified from image pixels.';
@@ -209,27 +214,85 @@ ORIGINAL DAMAGE REPORT:
       this.model
     )}:generateContent?key=${encodeURIComponent(this.apiKey)}`;
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.1,
-        },
-      }),
+    const candidate = await this.dispatchGeminiRequestWithRetry(endpoint, {
+      contents: [{ role: 'user', parts }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.1,
+      },
     });
-
-    if (!response.ok) {
-      throw new Error(`[GeminiProvider] Gemini repair verification failed with HTTP ${response.status}: ${await response.text()}`);
-    }
-
-    const json = await response.json();
-    const candidate = json.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!candidate) throw new Error('[GeminiProvider] Empty candidate response for repair verification.');
 
     const cleaned = candidate.replace(/```json\n?|\n?```/gi, '').trim();
     return AIVerificationOutputSchema.parse(JSON.parse(cleaned));
+  }
+
+  /**
+   * Dispatches request to Gemini API with production-safe retry logic:
+   * - Retries ONLY on transient HTTP 503 / UNAVAILABLE errors.
+   * - Maximum 2 retries (3 total attempts).
+   * - Exponential backoff: 1s, then 2s (or configured via GEMINI_RETRY_DELAY_MS for tests).
+   * - Never retries 400, 401, 403, 404, schema validation errors, or invalid API key errors.
+   * - If all retries fail, throws a clear temporary AI-unavailable error.
+   */
+  private async dispatchGeminiRequestWithRetry(
+    endpoint: string,
+    requestBody: any
+  ): Promise<string> {
+    const maxRetries = 2;
+    const baseDelayMs = process.env.GEMINI_RETRY_DELAY_MS
+      ? parseInt(process.env.GEMINI_RETRY_DELAY_MS, 10)
+      : 1000;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        const is503Unavailable =
+          response.status === 503 ||
+          (response.status >= 500 && errText.toUpperCase().includes('UNAVAILABLE'));
+
+        // Retry ONLY on HTTP 503 / UNAVAILABLE
+        if (is503Unavailable && attempt < maxRetries) {
+          const delayMs = baseDelayMs * Math.pow(2, attempt); // 1s, 2s
+          console.warn(
+            `[GeminiProvider] Transient HTTP 503 UNAVAILABLE from Gemini API (attempt ${attempt + 1}/${maxRetries + 1}). Retrying in ${delayMs}ms...`
+          );
+          await this.delay(delayMs);
+          continue;
+        }
+
+        if (is503Unavailable) {
+          throw new Error(
+            `[GeminiProvider] Google Gemini service is temporarily unavailable (HTTP 503 UNAVAILABLE) after ${maxRetries} retries. Please retry in a few moments.`
+          );
+        }
+
+        // Do NOT retry 400, 401, 403, 404, or any client errors
+        throw new Error(
+          `[GeminiProvider] Google Gemini API request failed with HTTP ${response.status} (${this.model}): ${errText}`
+        );
+      }
+
+      const json = await response.json();
+      const candidate = json.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!candidate) {
+        throw new Error(`[GeminiProvider] Gemini model ${this.model} returned empty response.`);
+      }
+
+      return candidate;
+    }
+
+    throw new Error(
+      `[GeminiProvider] Google Gemini service is temporarily unavailable (HTTP 503 UNAVAILABLE) after ${maxRetries} retries. Please retry in a few moments.`
+    );
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

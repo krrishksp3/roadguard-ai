@@ -67,18 +67,18 @@ export class ReportController {
         aiResult = {
           damageDetected: false,
           validRoadDamage: false,
-          classification: 'INVALID_EVIDENCE' as const,
-          damageType: 'NO_ROAD_DAMAGE' as const,
+          classification: 'INSUFFICIENT_EVIDENCE' as const,
+          damageType: 'INSUFFICIENT_EVIDENCE' as const,
           severity: 'NONE' as const,
           safetyRisk: 'NONE' as const,
           confidence: 0,
           visibleDamage: false,
           roadSafetyRisk: 0,
-          evidenceReason: 'AI verification could not validate pavement damage in the uploaded photograph.',
-          description: 'Invalid road-damage evidence: AI verification could not validate pavement damage in the uploaded photograph.',
-          recommendedAction: 'No civil action required. Report cancelled at intake due to invalid evidence.',
-          cancellationReason: 'The uploaded image does not appear to show a road/pavement defect.',
-          imageQuality: { isAcceptable: false, isBlurry: false, isTooDark: false, hasRoadVisible: false, qualityScore: 0 },
+          evidenceReason: 'Image analysis could not be completed for the uploaded photograph. Evidence is insufficient.',
+          description: 'Insufficient image evidence: The uploaded image could not be processed for road defect verification.',
+          recommendedAction: 'Please submit a clear, well-lit photograph directly facing the road distress.',
+          cancellationReason: 'Road damage could not be verified from this image. Image quality is insufficient.',
+          imageQuality: { isAcceptable: false, isBlurry: true, isTooDark: false, hasRoadVisible: false, qualityScore: 0 },
         };
       }
 
@@ -348,8 +348,13 @@ export class ReportController {
       const statusCode = duplicateCheck.isDuplicate ? 200 : 201;
       res.status(statusCode).json({
         success: true,
+        damageDetected: true,
         validRoadDamage: true,
         classification: aiResult.classification,
+        damageType: aiResult.damageType,
+        severity: report.severity,
+        riskScore: report.riskScore,
+        status: report.status,
         isDuplicate: duplicateCheck.isDuplicate,
         duplicateOfId: duplicateCheck.duplicateOfId,
         message: duplicateCheck.isDuplicate
