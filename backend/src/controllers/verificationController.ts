@@ -21,7 +21,20 @@ export class VerificationController {
         message: 'AI Repair Verification completed successfully',
         data: result,
       });
-    } catch (error) {
+    } catch (error: any) {
+      if (
+        error?.message?.includes('503') ||
+        error?.message?.toUpperCase().includes('UNAVAILABLE') ||
+        error?.status === 503 ||
+        error?.statusCode === 503
+      ) {
+        res.status(503).json({
+          success: false,
+          message: error.message || 'AI Repair Verification service is temporarily unavailable (HTTP 503 UNAVAILABLE). Please try again.',
+          aiProvider: 'gemini',
+        });
+        return;
+      }
       next(error);
     }
   }

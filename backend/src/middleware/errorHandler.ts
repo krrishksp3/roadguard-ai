@@ -17,7 +17,15 @@ export const errorHandler = (err: unknown, req: Request, res: Response, next: Ne
   }
 
   if (err instanceof Error) {
-    res.status(500).json({
+    const is503 =
+      (err as any).statusCode === 503 ||
+      (err as any).status === 503 ||
+      err.message.includes('503') ||
+      err.message.toUpperCase().includes('UNAVAILABLE');
+
+    const statusCode = is503 ? 503 : (err as any).statusCode || (err as any).status || 500;
+
+    res.status(statusCode).json({
       success: false,
       message: err.message || 'Internal Server Error',
     });

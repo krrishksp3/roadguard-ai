@@ -397,6 +397,7 @@ export const ReportDetailPage: React.FC = () => {
             afterImageUrl={report.repairAfterImageUrl || undefined}
             verification={report.verificationResult || undefined}
             isAuthority={isAuthority}
+            status={report.status}
             onVerificationComplete={fetchReport}
           />
         )}

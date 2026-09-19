@@ -583,6 +583,73 @@ describe('GeminiProvider — Multimodal Vision AI & Configurable Model', () => {
 
       expect(callCount).toBe(1); // Strictly 1 attempt, zero retries
     });
+
+    it('verifyRepair retries on HTTP 503 UNAVAILABLE and succeeds on subsequent attempt', async () => {
+      const validVerificationOutput = {
+        locationMatchConfidence: 95,
+        visibleImprovementScore: 90,
+        remainingDamageScore: 10,
+        overallConfidence: 92,
+        recommendation: 'PASS',
+        explanation: 'Asphalt patching completely sealed defect.',
+      };
+
+      let callCount = 0;
+      global.fetch = jest.fn().mockImplementation(async () => {
+        callCount++;
+        if (callCount === 1) {
+          return {
+            ok: false,
+            status: 503,
+            text: async () => 'The model is overloaded. Please try again later. (UNAVAILABLE)',
+          };
+        }
+        return {
+          ok: true,
+          json: async () => ({
+            candidates: [{ content: { parts: [{ text: JSON.stringify(validVerificationOutput) }] } }],
+          }),
+        };
+      });
+
+      const provider = new GeminiProvider('test-key', 'gemini-3.6-flash');
+      const res = await provider.verifyRepair({
+        beforeImageUrl: '/demo-evidence/pothole-reference.jpg',
+        afterImageUrl: '/demo-evidence/pothole-reference.jpg',
+        damageType: 'pothole',
+        originalSeverity: 'high',
+      });
+
+      expect(callCount).toBe(2); // 1 initial + 1 retry = 2 attempts
+      expect(res.recommendation).toBe('PASS');
+      expect(res.visibleImprovementScore).toBe(90);
+    });
+
+    it('verifyRepair exhausts maximum 2 retries (3 total attempts) on persistent HTTP 503 UNAVAILABLE and throws clear temporary error', async () => {
+      let callCount = 0;
+      global.fetch = jest.fn().mockImplementation(async () => {
+        callCount++;
+        return {
+          ok: false,
+          status: 503,
+          text: async () => 'Google Gemini vision backend overloaded (UNAVAILABLE)',
+        };
+      });
+
+      const provider = new GeminiProvider('test-key', 'gemini-3.6-flash');
+      await expect(
+        provider.verifyRepair({
+          beforeImageUrl: '/demo-evidence/pothole-reference.jpg',
+          afterImageUrl: '/demo-evidence/pothole-reference.jpg',
+          damageType: 'pothole',
+          originalSeverity: 'high',
+        })
+      ).rejects.toThrow(
+        /Google Gemini service is temporarily unavailable \(HTTP 503 UNAVAILABLE\) after 2 retries/
+      );
+
+      expect(callCount).toBe(3); // 1 initial + 2 retries = 3 attempts total
+    });
   });
 });
 
