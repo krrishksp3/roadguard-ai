@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../i18n/LanguageContext';
 import { api } from '../services/api';
-import { Shield, Lock, Mail, ArrowRight, UserCheck, AlertCircle } from 'lucide-react';
+import { Shield, Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -11,6 +12,7 @@ export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [isWakingServer, setIsWakingServer] = useState(false);
   const { login } = useAuth();
+  const { dict, language } = useLanguage();
   const navigate = useNavigate();
 
   // Send background wake-up ping to cloud server as soon as user opens login page
@@ -42,7 +44,7 @@ export const LoginPage: React.FC = () => {
       }
     } catch (err: any) {
       clearTimeout(wakeTimer);
-      setError(err.message || 'Login failed. Please verify credentials.');
+      setError(err.message || dict.auth.invalidCredentials);
     } finally {
       clearTimeout(wakeTimer);
       setLoading(false);
@@ -62,8 +64,8 @@ export const LoginPage: React.FC = () => {
           <div className="w-12 h-12 bg-gradient-to-br from-teal-600 to-emerald-600 text-white rounded-2xl mx-auto flex items-center justify-center shadow-md shadow-teal-900/15">
             <Shield className="w-6 h-6 text-white" />
           </div>
-          <h2 className="text-2xl font-black font-heading text-ink-950 tracking-tight">Sign in to ROADGUARD AI</h2>
-          <p className="text-xs text-slate-500">Access citizen reporting or authority operations console</p>
+          <h2 className="text-2xl font-black font-heading text-ink-950 tracking-tight">{dict.auth.loginTitle}</h2>
+          <p className="text-xs text-slate-500">{dict.auth.loginSubtitle}</p>
         </div>
 
         {error && (
@@ -76,7 +78,7 @@ export const LoginPage: React.FC = () => {
         {/* 1-Click Quick Demo Login Pill Buttons for Judges */}
         <div className="space-y-2">
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">
-            Quick Fill Demo Credentials
+            {dict.auth.quickDemoLogin}
           </p>
           <div className="grid grid-cols-3 gap-2">
             <button
@@ -84,28 +86,28 @@ export const LoginPage: React.FC = () => {
               onClick={() => fillDemo('citizen@roadguard.demo', 'citizen123')}
               className="px-2 py-2 bg-warm-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold rounded-xl transition border border-slate-200 text-center"
             >
-              Citizen
+              {language === 'hi' ? 'नागरिक' : 'Citizen'}
             </button>
             <button
               type="button"
               onClick={() => fillDemo('authority@roadguard.demo', 'authority123')}
               className="px-2 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 text-[11px] font-bold rounded-xl transition border border-amber-200 text-center"
             >
-              Authority
+              {language === 'hi' ? 'अधिकारी' : 'Authority'}
             </button>
             <button
               type="button"
               onClick={() => fillDemo('admin@roadguard.demo', 'admin123')}
               className="px-2 py-2 bg-teal-50 hover:bg-teal-100 text-teal-900 text-[11px] font-bold rounded-xl transition border border-teal-200 text-center"
             >
-              Admin
+              {language === 'hi' ? 'प्रशासक' : 'Admin'}
             </button>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">{dict.auth.emailLabel}</label>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               <input
@@ -120,7 +122,7 @@ export const LoginPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Password</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">{dict.auth.passwordLabel}</label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               <input
@@ -139,20 +141,20 @@ export const LoginPage: React.FC = () => {
             disabled={loading}
             className="btn-lift w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-extrabold py-3.5 rounded-xl shadow-md shadow-teal-900/15 transition flex items-center justify-center space-x-2 text-xs sm:text-sm uppercase tracking-wider disabled:opacity-50"
           >
-            <span>{loading ? (isWakingServer ? 'Connecting to Cloud Service...' : 'Authenticating...') : 'Sign In'}</span>
+            <span>{loading ? (isWakingServer ? (language === 'hi' ? 'सर्वर से संपर्क हो रहा है...' : 'Connecting to Cloud Service...') : dict.common.loading) : dict.auth.signInButton}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
           {isWakingServer && (
             <p className="text-center text-[11px] text-teal-700 font-medium animate-pulse">
-              Waking up cloud server instance... Please hold on.
+              {language === 'hi' ? 'क्लाउड सर्वर चालू हो रहा है... कृपया प्रतीक्षा करें।' : 'Waking up cloud server instance... Please hold on.'}
             </p>
           )}
         </form>
 
         <p className="text-center text-xs text-slate-500">
-          Don't have an account?{' '}
+          {dict.auth.noAccount}{' '}
           <Link to="/register" className="text-teal-700 font-bold hover:underline">
-            Create citizen account
+            {dict.auth.signupTitle}
           </Link>
         </p>
       </div>

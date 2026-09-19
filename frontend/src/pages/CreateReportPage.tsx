@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { offlineSync, OfflineDraftReport } from '../services/offlineSync';
 import { ReportsMap } from '../components/map/ReportsMap';
+import { useLanguage } from '../i18n/LanguageContext';
 import {
   MapPin,
   Sparkles,
@@ -155,6 +156,7 @@ const defectCategories = [
 export const CreateReportPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { dict, language, getDamageTypeLabel, getSeverityLabel } = useLanguage();
 
   // Wizard Step: 1 = ISSUE, 2 = PHOTO, 3 = LOCATION, 4 = SUBMIT (REVIEW)
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -335,7 +337,7 @@ export const CreateReportPage: React.FC = () => {
 
     if (!imageUrl) {
       setCurrentStep(2);
-      setError('Please add a photo of the road issue before submitting.');
+      setError(dict.createReport.validationPhotoRequired);
       return;
     }
 
@@ -441,19 +443,19 @@ export const CreateReportPage: React.FC = () => {
           {/* Header */}
           <div className="space-y-1.5">
             <div className="inline-flex items-center space-x-1.5 bg-teal-50 text-teal-800 border border-teal-200 px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider">
-              <span>✓ REPORT SUBMITTED</span>
+              <span>✓ {language === 'hi' ? 'रिपोर्ट दर्ज' : 'REPORT SUBMITTED'}</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black font-heading text-ink-950">
-              Your road issue has been received.
+              {dict.createReport.reportSuccessTitle}
             </h2>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              The case has been registered and forwarded to municipal maintenance division.
+              {dict.createReport.reportSuccessDesc}
             </p>
           </div>
 
           {/* Report ID Badge */}
           <div className="p-4 bg-warm-100 rounded-2xl border border-slate-200 flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Report ID</span>
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{dict.myReports.reportId}</span>
             <span className="font-mono text-base sm:text-lg font-black text-ink-950 bg-white px-3.5 py-1 rounded-xl border border-slate-200 shadow-xs">
               {submittedReport.id.startsWith('RG-')
                 ? submittedReport.id
@@ -464,26 +466,26 @@ export const CreateReportPage: React.FC = () => {
           {/* Lifecycle Progression (Required Sequence) */}
           <div className="space-y-2 text-left">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block text-center">
-              REPORT RESOLUTION LIFECYCLE
+              {language === 'hi' ? 'शिकायत समाधान प्रक्रिया' : 'REPORT RESOLUTION LIFECYCLE'}
             </span>
             <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center text-[10px] font-extrabold">
               <div className="p-2.5 rounded-xl bg-teal-700 text-white border border-teal-800 shadow-xs">
-                <span>REPORT RECEIVED ✓</span>
+                <span>{language === 'hi' ? 'रिपोर्ट दर्ज ✓' : 'REPORT RECEIVED ✓'}</span>
               </div>
               <div className="p-2.5 rounded-xl bg-teal-700 text-white border border-teal-800 shadow-xs">
-                <span>AI ANALYSIS ✓</span>
+                <span>{language === 'hi' ? 'AI विश्लेषण ✓' : 'AI ANALYSIS ✓'}</span>
               </div>
               <div className="p-2.5 rounded-xl bg-teal-700 text-white border border-teal-800 shadow-xs">
-                <span>PRIORITY ✓</span>
+                <span>{language === 'hi' ? 'प्राथमिकता ✓' : 'PRIORITY ✓'}</span>
               </div>
               <div className="p-2.5 rounded-xl bg-teal-700 text-white border border-teal-800 shadow-xs">
-                <span>AUTHORITY ✓</span>
+                <span>{language === 'hi' ? 'अधिकारी ✓' : 'AUTHORITY ✓'}</span>
               </div>
               <div className="p-2.5 rounded-xl bg-warm-100 text-slate-500 border border-slate-200">
-                <span>ACTION ○</span>
+                <span>{language === 'hi' ? 'कार्यवाही ○' : 'ACTION ○'}</span>
               </div>
               <div className="p-2.5 rounded-xl bg-warm-100 text-slate-500 border border-slate-200">
-                <span>VERIFICATION ○</span>
+                <span>{language === 'hi' ? 'सत्यापन ○' : 'VERIFICATION ○'}</span>
               </div>
             </div>
           </div>
@@ -494,42 +496,42 @@ export const CreateReportPage: React.FC = () => {
               <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
                 <span className="text-xs font-black uppercase tracking-wider text-ink-950 flex items-center space-x-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-teal-600" />
-                  <span>AI ASSESSMENT</span>
+                  <span>{dict.reportDetail.aiAnalysisCardTitle}</span>
                 </span>
                 <span className="text-[10px] font-bold bg-white text-teal-800 border border-slate-200 px-2 py-0.5 rounded-md">
-                  AI-assisted assessment
+                  {language === 'hi' ? 'AI-सहायित विश्लेषण' : 'AI-assisted assessment'}
                 </span>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
                 <div className="bg-white p-3 rounded-xl border border-slate-200">
-                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Issue</span>
-                  <span className="font-black text-ink-950 capitalize">{ai.damageType || submittedReport.damageType}</span>
+                  <span className="text-slate-400 block text-[10px] font-bold uppercase">{language === 'hi' ? 'समस्या' : 'Issue'}</span>
+                  <span className="font-black text-ink-950 capitalize">{getDamageTypeLabel(ai.damageType || submittedReport.damageType)}</span>
                 </div>
                 <div className="bg-white p-3 rounded-xl border border-slate-200">
-                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Severity</span>
-                  <span className="font-black text-ink-950 capitalize">{ai.severity || submittedReport.severity}</span>
+                  <span className="text-slate-400 block text-[10px] font-bold uppercase">{dict.common.severity}</span>
+                  <span className="font-black text-ink-950 capitalize">{getSeverityLabel(ai.severity || submittedReport.severity)}</span>
                 </div>
                 <div className="bg-white p-3 rounded-xl border border-slate-200">
-                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Safety Risk</span>
+                  <span className="text-slate-400 block text-[10px] font-bold uppercase">{language === 'hi' ? 'सुरक्षा जोखिम' : 'Safety Risk'}</span>
                   <span className="font-black text-ink-950 capitalize">
                     {ai.roadSafetyRisk !== undefined
-                      ? (ai.roadSafetyRisk >= 70 ? 'High' : ai.roadSafetyRisk >= 40 ? 'Moderate' : 'Low')
-                      : (priority >= 70 ? 'High' : 'Moderate')}
+                      ? (ai.roadSafetyRisk >= 70 ? (language === 'hi' ? 'उच्च' : 'High') : ai.roadSafetyRisk >= 40 ? (language === 'hi' ? 'मध्यम' : 'Moderate') : (language === 'hi' ? 'कम' : 'Low'))
+                      : (priority >= 70 ? (language === 'hi' ? 'उच्च' : 'High') : (language === 'hi' ? 'मध्यम' : 'Moderate'))}
                   </span>
                 </div>
                 <div className="bg-white p-3 rounded-xl border border-slate-200">
-                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Priority</span>
+                  <span className="text-slate-400 block text-[10px] font-bold uppercase">{dict.common.priority}</span>
                   <span className="font-black text-teal-700">{priority} / 100</span>
                 </div>
                 <div className="bg-white p-3 rounded-xl border border-slate-200">
-                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Duplicate</span>
-                  <span className="font-black text-ink-950">{submittedReport.isDuplicate ? 'Yes' : 'No'}</span>
+                  <span className="text-slate-400 block text-[10px] font-bold uppercase">{language === 'hi' ? 'समान शिकायत' : 'Duplicate'}</span>
+                  <span className="font-black text-ink-950">{submittedReport.isDuplicate ? (language === 'hi' ? 'हाँ' : 'Yes') : (language === 'hi' ? 'नहीं' : 'No')}</span>
                 </div>
               </div>
 
               <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-200/60 flex items-center justify-between">
-                <span className="italic">Final action is reviewed by the responsible authority.</span>
+                <span className="italic">{language === 'hi' ? 'अंतिम कार्यवाही अधिकृत निकाय द्वारा सत्यापित की जाती है।' : 'Final action is reviewed by the responsible authority.'}</span>
               </div>
             </div>
           )}
@@ -540,7 +542,7 @@ export const CreateReportPage: React.FC = () => {
               to={`/reports/${submittedReport.id}`}
               className="btn-lift w-full sm:w-auto bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-extrabold px-8 py-3.5 rounded-xl text-xs sm:text-sm tracking-wide transition shadow-md shadow-teal-900/15 flex items-center justify-center space-x-2"
             >
-              <span>VIEW MY REPORT</span>
+              <span>{dict.createReport.viewMyReport}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
 
@@ -556,7 +558,7 @@ export const CreateReportPage: React.FC = () => {
               }}
               className="w-full sm:w-auto bg-white hover:bg-slate-50 text-slate-700 font-bold px-6 py-3.5 rounded-xl text-xs sm:text-sm border border-slate-200 transition"
             >
-              REPORT ANOTHER ISSUE
+              {dict.createReport.reportAnother}
             </button>
           </div>
         </div>
@@ -575,33 +577,33 @@ export const CreateReportPage: React.FC = () => {
 
           <div className="space-y-2">
             <div className="inline-flex items-center space-x-1.5 bg-rose-50 text-rose-800 border border-rose-200 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-              <span>✕ Intake Verification Stopped</span>
+              <span>✕ {language === 'hi' ? 'प्रारंभिक सत्यापन समाप्त' : 'Intake Verification Stopped'}</span>
             </div>
             <h2 className="text-2xl font-black font-heading text-ink-950">
-              Road damage could not be verified from this image.
+              {dict.reportDetail.noDamageTitle}
             </h2>
             <p className="text-sm text-slate-600 max-w-lg mx-auto leading-relaxed">
-              Your report was not forwarded to the authority because the uploaded image did not provide sufficient road-damage evidence.
+              {dict.reportDetail.noDamageSubtitle}
             </p>
           </div>
 
           {/* Verification Status Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-left">
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-              <span className="text-[10px] font-bold uppercase text-slate-400 block">Evidence Status</span>
-              <span className="font-black text-rose-700 text-xs sm:text-sm">Not Verified</span>
+              <span className="text-[10px] font-bold uppercase text-slate-400 block">{language === 'hi' ? 'साक्ष्य स्थिति' : 'Evidence Status'}</span>
+              <span className="font-black text-rose-700 text-xs sm:text-sm">{language === 'hi' ? 'सत्यापित नहीं' : 'Not Verified'}</span>
             </div>
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-              <span className="text-[10px] font-bold uppercase text-slate-400 block">Risk Score</span>
+              <span className="text-[10px] font-bold uppercase text-slate-400 block">{dict.common.riskScore}</span>
               <span className="font-black text-slate-900 text-xs sm:text-sm">0</span>
             </div>
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-              <span className="text-[10px] font-bold uppercase text-slate-400 block">Priority</span>
-              <span className="font-black text-slate-900 text-xs sm:text-sm">None</span>
+              <span className="text-[10px] font-bold uppercase text-slate-400 block">{dict.common.priority}</span>
+              <span className="font-black text-slate-900 text-xs sm:text-sm">{language === 'hi' ? 'कोई नहीं' : 'None'}</span>
             </div>
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-              <span className="text-[10px] font-bold uppercase text-slate-400 block">Authority Assignment</span>
-              <span className="font-black text-slate-600 text-xs sm:text-sm">Not Created</span>
+              <span className="text-[10px] font-bold uppercase text-slate-400 block">{dict.common.assignedDepartment}</span>
+              <span className="font-black text-slate-600 text-xs sm:text-sm">{language === 'hi' ? 'आवंटित नहीं' : 'Not Created'}</span>
             </div>
           </div>
 
@@ -617,13 +619,13 @@ export const CreateReportPage: React.FC = () => {
               }}
               className="btn-lift flex-1 bg-teal-600 hover:bg-teal-500 text-white font-bold py-3 px-4 rounded-xl shadow-sm transition text-xs"
             >
-              Upload Road Photo Again
+              {language === 'hi' ? 'सड़क की फोटो दोबारा अपलोड करें' : 'Upload Road Photo Again'}
             </button>
             <Link
               to="/my-reports"
               className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-4 rounded-xl transition text-xs flex items-center justify-center space-x-1.5"
             >
-              <span>View in My Reports</span>
+              <span>{dict.myReports.title}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -698,10 +700,10 @@ export const CreateReportPage: React.FC = () => {
 
   // WIZARD PROGRESS BAR STEPS
   const steps = [
-    { num: 1, label: '01 ISSUE' },
-    { num: 2, label: '02 PHOTO' },
-    { num: 3, label: '03 LOCATION' },
-    { num: 4, label: '04 SUBMIT' },
+    { num: 1, label: language === 'hi' ? '01 समस्या' : '01 ISSUE' },
+    { num: 2, label: language === 'hi' ? '02 फोटो' : '02 PHOTO' },
+    { num: 3, label: language === 'hi' ? '03 स्थान' : '03 LOCATION' },
+    { num: 4, label: language === 'hi' ? '04 जमा करें' : '04 SUBMIT' },
   ];
 
   return (
@@ -749,17 +751,17 @@ export const CreateReportPage: React.FC = () => {
 
             <div className="space-y-1.5">
               <h3 className="text-lg font-black font-heading text-ink-950 uppercase tracking-tight">
-                Processing Report Intake
+                {dict.createReport.submittingReport}
               </h3>
               <p className="text-xs text-slate-500">
-                Please wait while our intake workflow registers your evidence...
+                {language === 'hi' ? 'कृपया प्रतीक्षा करें, आपकी रिपोर्ट दर्ज की जा रही है...' : 'Please wait while our intake workflow registers your evidence...'}
               </p>
             </div>
 
             {/* Required Submission Processing State */}
             <div className="space-y-2 text-left text-xs">
               <div className="p-3 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-between text-teal-900 font-bold">
-                <span>REPORT RECEIVED</span>
+                <span>{language === 'hi' ? 'रिपोर्ट प्राप्त' : 'REPORT RECEIVED'}</span>
                 <span className="text-teal-700">✓</span>
               </div>
 
@@ -770,8 +772,8 @@ export const CreateReportPage: React.FC = () => {
                     : 'bg-warm-50 border-slate-200 text-slate-400'
                 }`}
               >
-                <span>AI ANALYSIS</span>
-                <span>{submissionStage > 2 ? '✓' : 'Processing...'}</span>
+                <span>{language === 'hi' ? 'AI विश्लेषण' : 'AI ANALYSIS'}</span>
+                <span>{submissionStage > 2 ? '✓' : (language === 'hi' ? 'विश्लेषण चालू...' : 'Processing...')}</span>
               </div>
 
               <div
@@ -781,8 +783,8 @@ export const CreateReportPage: React.FC = () => {
                     : 'bg-warm-50 border-slate-200 text-slate-400'
                 }`}
               >
-                <span>PRIORITY</span>
-                <span>{submissionStage > 3 ? '✓' : 'Calculating...'}</span>
+                <span>{dict.common.priority}</span>
+                <span>{submissionStage > 3 ? '✓' : (language === 'hi' ? 'गणना जारी...' : 'Calculating...')}</span>
               </div>
 
               <div
@@ -792,8 +794,8 @@ export const CreateReportPage: React.FC = () => {
                     : 'bg-warm-50 border-slate-200 text-slate-400'
                 }`}
               >
-                <span>AUTHORITY ROUTING</span>
-                <span>{submissionStage >= 4 ? 'Preparing...' : 'Waiting'}</span>
+                <span>{language === 'hi' ? 'अधिकारी को प्रेषण' : 'AUTHORITY ROUTING'}</span>
+                <span>{submissionStage >= 4 ? (language === 'hi' ? 'तैयार किया जा रहा है...' : 'Preparing...') : (language === 'hi' ? 'प्रतीक्षारत' : 'Waiting')}</span>
               </div>
             </div>
           </div>
@@ -863,12 +865,14 @@ export const CreateReportPage: React.FC = () => {
       {currentStep === 1 && (
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-card space-y-6 animate-in fade-in duration-150">
           <div className="space-y-1">
-            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider">STEP 1 OF 4</span>
+            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider">
+              {language === 'hi' ? 'चरण 1 / 4' : 'STEP 1 OF 4'}
+            </span>
             <h1 className="text-2xl sm:text-3xl font-black font-heading text-ink-950">
-              What did you find?
+              {dict.createReport.step1Title}
             </h1>
             <p className="text-xs text-slate-500">
-              Choose the option that best describes the road surface defect.
+              {dict.createReport.step1Desc}
             </p>
           </div>
 
@@ -904,7 +908,7 @@ export const CreateReportPage: React.FC = () => {
                   </div>
                   <div>
                     <span className="font-heading font-black text-sm block tracking-tight">
-                      {cat.label}
+                      {getDamageTypeLabel(cat.id)}
                     </span>
                   </div>
                 </button>
@@ -922,7 +926,7 @@ export const CreateReportPage: React.FC = () => {
               }}
               className="btn-lift w-full sm:w-auto bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-xs sm:text-sm px-7 py-3.5 rounded-xl shadow-md shadow-teal-900/15 transition flex items-center justify-center space-x-2"
             >
-              <span>Continue</span>
+              <span>{dict.common.next}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -935,12 +939,14 @@ export const CreateReportPage: React.FC = () => {
       {currentStep === 2 && (
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-card space-y-6 animate-in fade-in duration-150">
           <div className="space-y-1">
-            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider">STEP 2 OF 4</span>
+            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider">
+              {language === 'hi' ? 'चरण 2 / 4' : 'STEP 2 OF 4'}
+            </span>
             <h1 className="text-2xl sm:text-3xl font-black font-heading text-ink-950">
-              Show us the problem
+              {dict.createReport.step2Title}
             </h1>
             <p className="text-xs text-slate-500">
-              A clear photo helps us understand the road condition.
+              {dict.createReport.step2Desc}
             </p>
           </div>
 
@@ -952,9 +958,11 @@ export const CreateReportPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <h3 className="font-bold text-ink-950 text-sm">Upload road defect photograph</h3>
+                <h3 className="font-bold text-ink-950 text-sm">
+                  {language === 'hi' ? 'सड़क की फोटो अपलोड करें' : 'Upload road defect photograph'}
+                </h3>
                 <p className="text-[11px] text-slate-500 max-w-sm mx-auto">
-                  Take a live photo on your device or upload from your gallery.
+                  {dict.createReport.uploadInstructions}
                 </p>
               </div>
 
@@ -966,7 +974,7 @@ export const CreateReportPage: React.FC = () => {
                   className="btn-lift w-full sm:w-auto bg-teal-700 hover:bg-teal-600 text-white font-extrabold text-xs px-5 py-3 rounded-xl transition flex items-center justify-center space-x-2 shadow-sm"
                 >
                   <Camera className="w-4 h-4" />
-                  <span>Take Photo</span>
+                  <span>{dict.createReport.takePhoto}</span>
                 </button>
 
                 <button
@@ -975,7 +983,7 @@ export const CreateReportPage: React.FC = () => {
                   className="btn-lift w-full sm:w-auto bg-white hover:bg-slate-50 text-ink-950 font-extrabold text-xs px-5 py-3 rounded-xl border border-slate-300 transition flex items-center justify-center space-x-2"
                 >
                   <ImageIcon className="w-4 h-4 text-slate-500" />
-                  <span>Upload Photo</span>
+                  <span>{dict.createReport.choosePhoto}</span>
                 </button>
               </div>
             </div>
@@ -988,7 +996,7 @@ export const CreateReportPage: React.FC = () => {
                   type="button"
                   onClick={() => setIsPhotoZoomed(true)}
                   className="absolute top-3 right-3 bg-ink-950/80 text-white p-2 rounded-xl hover:bg-ink-900 backdrop-blur-md transition"
-                  title="Inspect Fullscreen"
+                  title={language === 'hi' ? 'ज़ूम करें' : 'Inspect Fullscreen'}
                 >
                   <ZoomIn className="w-4 h-4" />
                 </button>
@@ -1003,7 +1011,7 @@ export const CreateReportPage: React.FC = () => {
                   onClick={() => fileInputRef.current?.click()}
                   className="btn-lift flex-1 bg-warm-100 hover:bg-slate-200 text-ink-950 font-bold text-xs py-2.5 px-4 rounded-xl border border-slate-200 transition text-center"
                 >
-                  Replace Photo
+                  {language === 'hi' ? 'फोटो बदलें' : 'Replace Photo'}
                 </button>
 
                 <button
@@ -1012,7 +1020,7 @@ export const CreateReportPage: React.FC = () => {
                   className="btn-lift flex items-center justify-center space-x-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs py-2.5 px-4 rounded-xl border border-rose-200 transition"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Remove</span>
+                  <span>{language === 'hi' ? 'हटाएं' : 'Remove'}</span>
                 </button>
               </div>
             </div>
@@ -1022,10 +1030,10 @@ export const CreateReportPage: React.FC = () => {
           <div className="pt-3 border-t border-slate-100 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Or pick reference photo for testing:
+                {dict.createReport.orSelectPreset}
               </span>
               <span className="text-[10px] text-teal-700 font-semibold bg-teal-50 px-2 py-0.5 rounded">
-                1-Click Preset
+                {language === 'hi' ? 'नमूना फोटो' : '1-Click Preset'}
               </span>
             </div>
 
@@ -1055,14 +1063,14 @@ export const CreateReportPage: React.FC = () => {
               className="btn-lift flex-1 sm:flex-initial inline-flex items-center justify-center space-x-1.5 text-xs font-bold text-slate-600 hover:text-ink-900 px-5 py-3.5 rounded-xl border border-slate-200"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back</span>
+              <span>{dict.common.back}</span>
             </button>
 
             <button
               type="button"
               onClick={() => {
                 if (!imageUrl) {
-                  setError('Please add or choose a photo before continuing.');
+                  setError(dict.createReport.validationPhotoRequired);
                   return;
                 }
                 setError('');
@@ -1070,7 +1078,7 @@ export const CreateReportPage: React.FC = () => {
               }}
               className="btn-lift flex-1 sm:flex-initial bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-xs sm:text-sm px-7 py-3.5 rounded-xl shadow-md shadow-teal-900/15 transition flex items-center justify-center space-x-2"
             >
-              <span>Continue</span>
+              <span>{dict.common.next}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -1083,12 +1091,14 @@ export const CreateReportPage: React.FC = () => {
       {currentStep === 3 && (
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-card space-y-6 animate-in fade-in duration-150">
           <div className="space-y-1">
-            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider">STEP 3 OF 4</span>
+            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider">
+              {language === 'hi' ? 'चरण 3 / 4' : 'STEP 3 OF 4'}
+            </span>
             <h1 className="text-2xl sm:text-3xl font-black font-heading text-ink-950">
-              Where is the problem?
+              {dict.createReport.step3Title}
             </h1>
             <p className="text-xs text-slate-500">
-              Verify GPS coordinates or adjust location pin on the map.
+              {dict.createReport.step3Desc}
             </p>
           </div>
 
@@ -1098,13 +1108,13 @@ export const CreateReportPage: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-teal-500 animate-pulse" />
                 <span className="text-xs font-black uppercase tracking-wide text-ink-950">
-                  {gpsStatus === 'success' ? 'GPS location detected' : 'Location Pinpoint'}
+                  {gpsStatus === 'success' ? (language === 'hi' ? 'GPS स्थान मिल गया' : 'GPS location detected') : (language === 'hi' ? 'नक्शे पर स्थान' : 'Location Pinpoint')}
                 </span>
               </div>
 
               {gpsAccuracy && (
                 <span className="text-[10px] font-mono font-bold bg-white text-teal-800 border border-slate-200 px-2 py-0.5 rounded-md">
-                  Accuracy: ±{gpsAccuracy}m
+                  {language === 'hi' ? 'सटीकता' : 'Accuracy'}: ±{gpsAccuracy}m
                 </span>
               )}
             </div>
@@ -1112,22 +1122,26 @@ export const CreateReportPage: React.FC = () => {
             {/* Display: Latitude, Longitude, Accuracy */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-mono">
               <div className="bg-white p-2.5 rounded-xl border border-slate-200">
-                <span className="text-[10px] text-slate-400 block font-sans font-bold uppercase">Latitude</span>
+                <span className="text-[10px] text-slate-400 block font-sans font-bold uppercase">{dict.createReport.latitude}</span>
                 <span className="font-bold text-ink-950">{location[0].toFixed(5)}</span>
               </div>
               <div className="bg-white p-2.5 rounded-xl border border-slate-200">
-                <span className="text-[10px] text-slate-400 block font-sans font-bold uppercase">Longitude</span>
+                <span className="text-[10px] text-slate-400 block font-sans font-bold uppercase">{dict.createReport.longitude}</span>
                 <span className="font-bold text-ink-950">{location[1].toFixed(5)}</span>
               </div>
               <div className="bg-white p-2.5 rounded-xl border border-slate-200 col-span-2 sm:col-span-1">
-                <span className="text-[10px] text-slate-400 block font-sans font-bold uppercase">Status</span>
-                <span className="font-bold text-teal-700 font-sans capitalize">{gpsStatus}</span>
+                <span className="text-[10px] text-slate-400 block font-sans font-bold uppercase">{dict.common.status}</span>
+                <span className="font-bold text-teal-700 font-sans capitalize">
+                  {gpsStatus === 'success' ? (language === 'hi' ? 'सक्रिय' : 'Active') : gpsStatus}
+                </span>
               </div>
             </div>
 
             <div className="text-xs text-slate-600 space-y-0.5 pt-1">
               <span className="font-bold text-ink-950 block">{detectedRoad}</span>
-              <span className="text-[11px] text-slate-400 block">Responsible: {detectedDepartment}</span>
+              <span className="text-[11px] text-slate-400 block">
+                {language === 'hi' ? 'जिम्मेदार विभाग:' : 'Responsible:'} {detectedDepartment}
+              </span>
             </div>
 
             {/* Buttons: Use My Location & Change Location */}
@@ -1139,7 +1153,7 @@ export const CreateReportPage: React.FC = () => {
                 className="btn-lift bg-teal-700 hover:bg-teal-600 text-white font-bold text-xs px-4 py-2 rounded-xl transition flex items-center space-x-1.5 shadow-xs"
               >
                 <Navigation className="w-3.5 h-3.5" />
-                <span>{gpsStatus === 'locating' ? 'Locating...' : 'Use My Location'}</span>
+                <span>{gpsStatus === 'locating' ? dict.createReport.gpsDetecting : dict.createReport.detectGps}</span>
               </button>
 
               <button
@@ -1148,7 +1162,11 @@ export const CreateReportPage: React.FC = () => {
                 className="btn-lift bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs px-4 py-2 rounded-xl border border-slate-200 transition flex items-center space-x-1.5"
               >
                 <MapPin className="w-3.5 h-3.5 text-slate-500" />
-                <span>{isManualLocationMode ? 'Done Pinning' : 'Change Location (Tap Map)'}</span>
+                <span>
+                  {isManualLocationMode
+                    ? (language === 'hi' ? 'स्थान चुन लिया' : 'Done Pinning')
+                    : (language === 'hi' ? 'स्थान बदलें (नक्शे पर टैप करें)' : 'Change Location (Tap Map)')}
+                </span>
               </button>
             </div>
           </div>
@@ -1172,7 +1190,7 @@ export const CreateReportPage: React.FC = () => {
               className="btn-lift flex-1 sm:flex-initial inline-flex items-center justify-center space-x-1.5 text-xs font-bold text-slate-600 hover:text-ink-900 px-5 py-3.5 rounded-xl border border-slate-200"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back</span>
+              <span>{dict.common.back}</span>
             </button>
 
             <button
@@ -1183,7 +1201,7 @@ export const CreateReportPage: React.FC = () => {
               }}
               className="btn-lift flex-1 sm:flex-initial bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-xs sm:text-sm px-7 py-3.5 rounded-xl shadow-md shadow-teal-900/15 transition flex items-center justify-center space-x-2"
             >
-              <span>Continue</span>
+              <span>{dict.common.next}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -1196,12 +1214,14 @@ export const CreateReportPage: React.FC = () => {
       {currentStep === 4 && (
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-card space-y-6 animate-in fade-in duration-150">
           <div className="space-y-1">
-            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider">STEP 4 OF 4</span>
+            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider">
+              {language === 'hi' ? 'चरण 4 / 4' : 'STEP 4 OF 4'}
+            </span>
             <h1 className="text-2xl sm:text-3xl font-black font-heading text-ink-950">
-              Review & Submit
+              {dict.createReport.step4Title}
             </h1>
             <p className="text-xs text-slate-500">
-              Verify your report details before submitting to municipal maintenance authorities.
+              {dict.createReport.step4Desc}
             </p>
           </div>
 
@@ -1209,9 +1229,11 @@ export const CreateReportPage: React.FC = () => {
           <div className="bg-warm-50 rounded-2xl p-4 sm:p-5 border border-slate-200 space-y-4 text-xs">
             <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
               <div>
-                <span className="text-slate-400 block text-[10px] font-bold uppercase">Issue Detected</span>
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">
+                  {language === 'hi' ? 'पहचानी गई समस्या' : 'Issue Detected'}
+                </span>
                 <span className="font-heading font-black text-base text-ink-950 capitalize">
-                  {defectCategories.find((c) => c.id === selectedCategory)?.label || selectedCategory}
+                  {getDamageTypeLabel(selectedCategory)}
                 </span>
               </div>
               <button
@@ -1219,7 +1241,7 @@ export const CreateReportPage: React.FC = () => {
                 onClick={() => setCurrentStep(1)}
                 className="text-teal-700 hover:text-teal-800 font-bold text-xs"
               >
-                Change
+                {language === 'hi' ? 'बदलें' : 'Change'}
               </button>
             </div>
 
@@ -1230,9 +1252,9 @@ export const CreateReportPage: React.FC = () => {
                   <img src={imageUrl} alt="Thumbnail preview" className="w-16 h-12 rounded-xl object-cover border border-slate-200" />
                 )}
                 <div>
-                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Evidence Photo</span>
+                  <span className="text-slate-400 block text-[10px] font-bold uppercase">{dict.common.evidence}</span>
                   <span className="font-bold text-ink-950 block truncate max-w-[200px]">
-                    {imageFilename || 'Selected road photo'}
+                    {imageFilename || (language === 'hi' ? 'चुनी गई फोटो' : 'Selected road photo')}
                   </span>
                 </div>
               </div>
@@ -1241,14 +1263,14 @@ export const CreateReportPage: React.FC = () => {
                 onClick={() => setCurrentStep(2)}
                 className="text-teal-700 hover:text-teal-800 font-bold text-xs"
               >
-                Change
+                {language === 'hi' ? 'बदलें' : 'Change'}
               </button>
             </div>
 
             {/* Location Summary */}
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-slate-400 block text-[10px] font-bold uppercase">Location</span>
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">{dict.common.location}</span>
                 <span className="font-bold text-ink-950 block">{detectedRoad}</span>
                 <span className="text-slate-500 text-[11px] font-mono">
                   {location[0].toFixed(5)}, {location[1].toFixed(5)}
@@ -1259,7 +1281,7 @@ export const CreateReportPage: React.FC = () => {
                 onClick={() => setCurrentStep(3)}
                 className="text-teal-700 hover:text-teal-800 font-bold text-xs"
               >
-                Change
+                {language === 'hi' ? 'बदलें' : 'Change'}
               </button>
             </div>
           </div>
@@ -1267,13 +1289,13 @@ export const CreateReportPage: React.FC = () => {
           {/* Optional Description: "Anything else we should know?" */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-ink-950">
-              Anything else we should know? <span className="text-slate-400 font-normal">(Optional)</span>
+              {dict.createReport.descriptionLabel} <span className="text-slate-400 font-normal">({language === 'hi' ? 'वैकल्पिक' : 'Optional'})</span>
             </label>
             <textarea
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g. Near bus stop, dangerous for two-wheelers at night..."
+              placeholder={dict.createReport.descriptionPlaceholder}
               className="w-full text-xs sm:text-sm p-3.5 rounded-2xl border border-slate-200 focus:border-teal-600 focus:ring-1 focus:ring-teal-600 outline-none transition"
             />
           </div>
@@ -1286,7 +1308,7 @@ export const CreateReportPage: React.FC = () => {
               className="btn-lift w-full sm:w-auto inline-flex items-center justify-center space-x-1.5 text-xs font-bold text-slate-600 hover:text-ink-900 px-4 py-3 rounded-xl border border-slate-200"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back</span>
+              <span>{dict.common.back}</span>
             </button>
 
             <button
@@ -1295,7 +1317,7 @@ export const CreateReportPage: React.FC = () => {
               disabled={submitting}
               className="btn-lift w-full sm:flex-1 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-black text-sm sm:text-base py-4 px-8 rounded-2xl shadow-lg shadow-teal-900/15 tracking-wider uppercase transition flex items-center justify-center space-x-2"
             >
-              <span>SUBMIT REPORT</span>
+              <span>{dict.createReport.submitReportBtn}</span>
               <ArrowRight className="w-5 h-5" />
             </button>
           </div>

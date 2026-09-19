@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { LanguageProvider } from './i18n/LanguageContext';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { LandingPage } from './pages/LandingPage';
@@ -10,16 +11,17 @@ import { CreateReportPage } from './pages/CreateReportPage';
 import { MyReportsPage } from './pages/MyReportsPage';
 import { ReportDetailPage } from './pages/ReportDetailPage';
 import { AuthorityDashboard } from './pages/AuthorityDashboard';
+import { AdminDashboard } from './pages/AdminDashboard';
 import { PublicMapPage } from './pages/PublicMapPage';
 import { TenderIntelligencePage } from './pages/TenderIntelligencePage';
 import { RoadHealthPage } from './pages/RoadHealthPage';
-import { AdminDashboard } from './pages/AdminDashboard';
 
 export const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <div className="min-h-screen flex flex-col bg-warm-100 text-ink-900 selection:bg-teal-700 selection:text-white font-sans">
+    <LanguageProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <div className="min-h-screen flex flex-col bg-warm-100 text-ink-900 selection:bg-teal-700 selection:text-white font-sans">
           <Navbar />
           <main className="flex-1">
             <Routes>
@@ -40,6 +42,7 @@ export const App: React.FC = () => {
         </div>
       </BrowserRouter>
     </AuthProvider>
+    </LanguageProvider>
   );
 };
 

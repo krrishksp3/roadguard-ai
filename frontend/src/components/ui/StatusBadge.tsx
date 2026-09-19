@@ -1,7 +1,10 @@
 import React from 'react';
 import { ComplaintStatus, SeverityLevel } from '../../../../shared/types';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 export const StatusBadge: React.FC<{ status: ComplaintStatus | string }> = ({ status }) => {
+  const { language, getStatusExplanation } = useLanguage();
+
   const getStyle = () => {
     switch (status) {
       case 'REPORTED':
@@ -31,18 +34,26 @@ export const StatusBadge: React.FC<{ status: ComplaintStatus | string }> = ({ st
     }
   };
 
-  const getLabel = () => {
-    return status.replace(/_/g, ' ');
-  };
+  const explanation = getStatusExplanation(status);
+  const technicalLabel = status.replace(/_/g, ' ');
 
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStyle()}`}>
-      {getLabel()}
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStyle()}`}
+      title={explanation}
+    >
+      <span className="font-bold tracking-tight">{technicalLabel}</span>
+      {language === 'hi' && explanation && (
+        <span className="font-normal text-[11px] opacity-90 border-l border-current/20 pl-1.5">
+          {explanation}
+        </span>
+      )}
     </span>
   );
 };
 
 export const SeverityBadge: React.FC<{ severity: SeverityLevel | string }> = ({ severity }) => {
+  const { language, getSeverityLabel } = useLanguage();
   const s = severity.toLowerCase();
   let style = 'bg-slate-100 text-slate-700 border-slate-200';
   if (s === 'critical') style = 'bg-red-100 text-red-800 border-red-300';
@@ -50,9 +61,19 @@ export const SeverityBadge: React.FC<{ severity: SeverityLevel | string }> = ({ 
   else if (s === 'medium') style = 'bg-yellow-100 text-yellow-800 border-yellow-300';
   else if (s === 'low') style = 'bg-emerald-100 text-emerald-800 border-emerald-300';
 
+  const localized = getSeverityLabel(severity);
+
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wider border ${style}`}>
-      {severity}
+    <span
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wider border ${style}`}
+      title={localized}
+    >
+      <span>{severity}</span>
+      {language === 'hi' && localized && (
+        <span className="font-normal text-[11px] normal-case border-l border-current/20 pl-1">
+          {localized}
+        </span>
+      )}
     </span>
   );
 };

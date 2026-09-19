@@ -17,6 +17,8 @@ import {
   RotateCcw,
 } from 'lucide-react';
 
+import { useLanguage } from '../../i18n/LanguageContext';
+
 interface BeforeAfterProps {
   reportId: string;
   beforeImageUrl: string;
@@ -36,6 +38,7 @@ export const BeforeAfterComparison: React.FC<BeforeAfterProps> = ({
   status = 'REPORTED',
   onVerificationComplete,
 }) => {
+  const { dict, language } = useLanguage();
   const [afterImage, setAfterImage] = useState<string>(initialAfterImage || '');
   const [verification, setVerification] = useState<RepairVerification | undefined>(initialVerification);
   const [notes, setNotes] = useState<string>('');
@@ -292,14 +295,14 @@ export const BeforeAfterComparison: React.FC<BeforeAfterProps> = ({
               <div className="space-y-1">
                 <div className="flex items-center space-x-2">
                   <h4 className="text-sm font-black font-heading uppercase tracking-wide text-amber-950">
-                    Verification service temporarily unavailable
+                    {dict.reportDetail.serviceUnavailableTitle}
                   </h4>
                   <span className="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-amber-200/80 text-amber-900 border border-amber-300">
                     HTTP 503
                   </span>
                 </div>
                 <p className="text-xs text-amber-900/90 leading-relaxed max-w-2xl">
-                  {serviceUnavailable.message}
+                  {dict.reportDetail.serviceUnavailableDesc}
                 </p>
               </div>
             </div>
@@ -321,10 +324,12 @@ export const BeforeAfterComparison: React.FC<BeforeAfterProps> = ({
               className="btn-lift bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition flex items-center space-x-1.5 shadow-sm disabled:opacity-50"
             >
               <RotateCcw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-              <span>{isLoading ? 'Retrying Verification...' : 'Retry Verification'}</span>
+              <span>{isLoading ? dict.common.loading : dict.reportDetail.retryAuditBtn}</span>
             </button>
             <span className="text-[11px] text-amber-800/80 font-medium">
-              Safe action: Re-triggers optical verification without modifying case state or evidence.
+              {language === 'hi'
+                ? 'सुरक्षित कार्यवाही: केस अथवा साक्ष्य को बदले बिना पुनः सत्यापन प्रक्रिया आरंभ होती है।'
+                : 'Safe action: Re-triggers optical verification without modifying case state or evidence.'}
             </span>
           </div>
         </div>
@@ -334,9 +339,11 @@ export const BeforeAfterComparison: React.FC<BeforeAfterProps> = ({
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div>
-            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider block">PHOTOGRAPHIC AUDIT</span>
+            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider block">
+              {language === 'hi' ? 'फोटो साक्ष्य ऑडिट' : 'PHOTOGRAPHIC AUDIT'}
+            </span>
             <h3 className="font-black font-heading text-xl sm:text-2xl text-ink-950 tracking-tight uppercase">
-              BEFORE | AFTER
+              {language === 'hi' ? 'मरम्मत से पहले | बाद में' : 'BEFORE | AFTER'}
             </h3>
           </div>
           <div className="flex items-center space-x-2">
@@ -680,10 +687,10 @@ export const BeforeAfterComparison: React.FC<BeforeAfterProps> = ({
       <div className="p-4 bg-warm-100 rounded-2xl border border-slate-200 space-y-2">
         <div className="flex items-center space-x-2 text-xs font-bold text-ink-950">
           <UserCheck className="w-4 h-4 text-teal-700" />
-          <span>Human Authority Sign-Off Required</span>
+          <span>{dict.reportDetail.authoritySignOffTitle}</span>
         </div>
         <p className="text-[11px] text-slate-600 leading-relaxed">
-          AI serves strictly as decision support. Final closure of civil infrastructure work orders rests solely with designated municipal and PWD officers.
+          {dict.reportDetail.authoritySignOffText}
         </p>
 
         {isAuthority && afterImage && (
@@ -695,7 +702,7 @@ export const BeforeAfterComparison: React.FC<BeforeAfterProps> = ({
               className="btn-lift flex-1 bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center space-x-1.5"
             >
               <Check className="w-4 h-4" />
-              <span>Approve Remediation & Close Case</span>
+              <span>{dict.reportDetail.approveRemediationBtn}</span>
             </button>
             <button
               type="button"
@@ -704,7 +711,7 @@ export const BeforeAfterComparison: React.FC<BeforeAfterProps> = ({
               className="btn-lift flex-1 bg-rose-700 hover:bg-rose-600 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center space-x-1.5"
             >
               <AlertTriangle className="w-4 h-4" />
-              <span>Reject & Request Re-Inspection</span>
+              <span>{dict.reportDetail.rejectReinspectionBtn}</span>
             </button>
           </div>
         )}

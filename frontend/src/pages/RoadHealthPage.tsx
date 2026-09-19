@@ -3,8 +3,10 @@ import { api } from '../services/api';
 import { RoadSegment } from '../../../shared/types';
 import { Activity, AlertTriangle, CheckCircle, ShieldAlert, FileText, Info, ArrowRight, TrendingUp, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../i18n/LanguageContext';
 
 export const RoadHealthPage: React.FC = () => {
+  const { dict, language } = useLanguage();
   const [segments, setSegments] = useState<RoadSegment[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -36,15 +38,15 @@ export const RoadHealthPage: React.FC = () => {
         <div>
           <div className="inline-flex items-center space-x-2 bg-white border border-slate-200 shadow-subtle px-3 py-1 rounded-full text-xs font-bold text-teal-800 mb-2">
             <Activity className="w-3.5 h-3.5 text-teal-600" />
-            <span>Infrastructure Analytics</span>
+            <span>{language === 'hi' ? 'अवसंरचना विश्लेषण' : 'Infrastructure Analytics'}</span>
             <span>•</span>
-            <span>Corridor Health Index</span>
+            <span>{dict.roadHealth.cityHealthIndex}</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black font-heading text-ink-950 tracking-tight uppercase">
-            ROAD HEALTH
+            {dict.roadHealth.pageTitle}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
-            Corridor-level pavement deterioration monitoring, chronic hotspot detection, and civil asset lifespan metrics.
+            {dict.roadHealth.pageSubtitle}
           </p>
         </div>
 
@@ -52,7 +54,7 @@ export const RoadHealthPage: React.FC = () => {
           to="/map"
           className="btn-lift self-start sm:self-auto bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white text-xs sm:text-sm font-extrabold px-4 py-2.5 rounded-xl transition shadow-md shadow-teal-900/15 flex items-center space-x-1.5"
         >
-          <span>View on Map</span>
+          <span>{language === 'hi' ? 'नक्शे पर देखें' : 'View on Map'}</span>
           <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
@@ -63,17 +65,17 @@ export const RoadHealthPage: React.FC = () => {
         <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-card space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              CURRENT RISK
+              {language === 'hi' ? 'वर्तमान जोखिम' : 'CURRENT RISK'}
             </span>
             <AlertTriangle className="w-4 h-4 text-amber-500" />
           </div>
           <div className="flex items-baseline space-x-2">
             <span className="text-2xl sm:text-3xl font-black font-heading text-ink-950">
-              {highRiskCount} Segments
+              {highRiskCount} {language === 'hi' ? 'खंड' : 'Segments'}
             </span>
           </div>
           <span className="text-[11px] text-slate-500 block">
-            Avg condition: <strong className="text-teal-700 font-mono">{avgHealthScore}/100</strong>
+            {language === 'hi' ? 'औसत स्थिति:' : 'Avg condition:'} <strong className="text-teal-700 font-mono">{avgHealthScore}/100</strong>
           </span>
         </div>
 
@@ -81,17 +83,17 @@ export const RoadHealthPage: React.FC = () => {
         <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-card space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              REPORTS
+              {language === 'hi' ? 'कुल शिकायतें' : 'REPORTS'}
             </span>
             <FileText className="w-4 h-4 text-teal-600" />
           </div>
           <div className="flex items-baseline space-x-2">
             <span className="text-2xl sm:text-3xl font-black font-heading text-ink-950">
-              {totalIncidents} Total
+              {totalIncidents} {language === 'hi' ? 'कुल' : 'Total'}
             </span>
           </div>
           <span className="text-[11px] text-slate-500 block">
-            Across monitored Meerut corridors
+            {language === 'hi' ? 'निगरानी किए गए मेरठ कॉरिडोर' : 'Across monitored Meerut corridors'}
           </span>
         </div>
 
@@ -99,17 +101,17 @@ export const RoadHealthPage: React.FC = () => {
         <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-card space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              RECURRING ISSUES
+              {language === 'hi' ? 'बार-बार क्षति' : 'RECURRING ISSUES'}
             </span>
             <ShieldAlert className="w-4 h-4 text-rose-500" />
           </div>
           <div className="flex items-baseline space-x-2">
             <span className="text-2xl sm:text-3xl font-black font-heading text-rose-600">
-              {recurringHotspotsCount} Hotspots
+              {recurringHotspotsCount} {language === 'hi' ? 'हॉटस्पॉट' : 'Hotspots'}
             </span>
           </div>
           <span className="text-[11px] text-slate-500 block">
-            Repeated distress within 6 months
+            {language === 'hi' ? 'पिछले 6 माह में बार-बार क्षति' : 'Repeated distress within 6 months'}
           </span>
         </div>
 
@@ -117,17 +119,17 @@ export const RoadHealthPage: React.FC = () => {
         <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/90 shadow-card space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              RECENT ACTIVITY
+              {language === 'hi' ? 'सफल समाधान' : 'RECENT ACTIVITY'}
             </span>
             <CheckCircle className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="flex items-baseline space-x-2">
             <span className="text-2xl sm:text-3xl font-black font-heading text-emerald-600">
-              {totalResolved} Resolved
+              {totalResolved} {language === 'hi' ? 'हल हुए' : 'Resolved'}
             </span>
           </div>
           <span className="text-[11px] text-slate-500 block">
-            Remediated with audit verification
+            {language === 'hi' ? 'ऑडिट सत्यापन के साथ मरम्मत' : 'Remediated with audit verification'}
           </span>
         </div>
       </div>
@@ -136,7 +138,9 @@ export const RoadHealthPage: React.FC = () => {
       {loading ? (
         <div className="text-center py-20 space-y-2">
           <div className="w-8 h-8 rounded-full border-2 border-teal-600 border-t-transparent animate-spin mx-auto" />
-          <p className="text-xs font-semibold text-slate-500">Loading road segment health telemetry...</p>
+          <p className="text-xs font-semibold text-slate-500">
+            {language === 'hi' ? 'सड़क स्वास्थ्य डेटा लोड हो रहा है...' : 'Loading road segment health telemetry...'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -151,10 +155,10 @@ export const RoadHealthPage: React.FC = () => {
 
             const statusText =
               riskLevel === 'HIGH'
-                ? 'Immediate resurfacing required'
+                ? (language === 'hi' ? 'तत्काल मरम्मत आवश्यक' : 'Immediate resurfacing required')
                 : riskLevel === 'MODERATE'
-                ? 'Routine maintenance inspection'
-                : 'Pavement stable';
+                ? (language === 'hi' ? 'नियमित रखरखाव निरीक्षण' : 'Routine maintenance inspection')
+                : (language === 'hi' ? 'सड़क स्थिति सामान्य' : 'Pavement stable');
 
             return (
               <div
@@ -166,7 +170,7 @@ export const RoadHealthPage: React.FC = () => {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <span className="font-mono text-[10px] font-bold text-slate-400 block uppercase">
-                        {seg.code} • {seg.lengthKm} KM SPAN
+                        {seg.code} • {seg.lengthKm} {language === 'hi' ? 'किमी दायरा' : 'KM SPAN'}
                       </span>
                       <h3 className="font-black font-heading text-ink-950 text-lg mt-0.5">
                         {seg.name}
@@ -177,14 +181,16 @@ export const RoadHealthPage: React.FC = () => {
                     </div>
 
                     <span className={`px-2.5 py-1 rounded-xl text-xs font-black border uppercase tracking-wide ${riskBadgeColor}`}>
-                      {riskLevel} RISK
+                      {language === 'hi'
+                        ? (riskLevel === 'HIGH' ? 'उच्च जोखिम' : riskLevel === 'MODERATE' ? 'मध्यम जोखिम' : 'कम जोखिम')
+                        : `${riskLevel} RISK`}
                     </span>
                   </div>
 
                   {/* VISUAL ROAD-SEGMENT HEALTH INDICATOR (Section 17) */}
                   <div className="bg-warm-50 p-4 rounded-2xl border border-slate-200/80 space-y-2">
                     <div className="flex justify-between text-xs">
-                      <span className="font-bold text-slate-700">Pavement Condition Index</span>
+                      <span className="font-bold text-slate-700">{language === 'hi' ? 'सड़क गुणवत्ता सूचकांक' : 'Pavement Condition Index'}</span>
                       <span className="font-mono font-black text-ink-950">{seg.healthScore} / 100</span>
                     </div>
                     {/* Visual bar */}
@@ -201,25 +207,25 @@ export const RoadHealthPage: React.FC = () => {
                       />
                     </div>
                     <div className="flex justify-between text-[10px] text-slate-400 font-mono pt-0.5">
-                      <span>0 (Failing)</span>
-                      <span>50 (Fair)</span>
-                      <span>100 (Optimal)</span>
+                      <span>0 ({language === 'hi' ? 'खराब' : 'Failing'})</span>
+                      <span>50 ({language === 'hi' ? 'सामान्य' : 'Fair'})</span>
+                      <span>100 ({language === 'hi' ? 'उत्कृष्ट' : 'Optimal'})</span>
                     </div>
                   </div>
 
                   {/* Summary Grid */}
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="bg-warm-100 p-3 rounded-xl border border-slate-200">
-                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Reports Count</span>
+                      <span className="text-[10px] text-slate-400 block font-bold uppercase">{language === 'hi' ? 'शिकायतों की संख्या' : 'Reports Count'}</span>
                       <span className="font-bold text-ink-950 text-sm">
-                        {seg.openComplaints + seg.resolvedComplaints} Recorded
+                        {seg.openComplaints + seg.resolvedComplaints} {language === 'hi' ? 'दर्ज' : 'Recorded'}
                       </span>
                     </div>
 
                     <div className="bg-warm-100 p-3 rounded-xl border border-slate-200">
-                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Recurring Flag</span>
+                      <span className="text-[10px] text-slate-400 block font-bold uppercase">{language === 'hi' ? 'बार-बार क्षति' : 'Recurring Flag'}</span>
                       <span className={`font-bold text-xs ${seg.isRecurringHotspot ? 'text-rose-700' : 'text-slate-700'}`}>
-                        {seg.isRecurringHotspot ? `${seg.recurringDamageCount} Incidents` : 'None Detected'}
+                        {seg.isRecurringHotspot ? `${seg.recurringDamageCount} ${language === 'hi' ? 'मामले' : 'Incidents'}` : (language === 'hi' ? 'कोई नहीं' : 'None Detected')}
                       </span>
                     </div>
                   </div>
@@ -232,7 +238,7 @@ export const RoadHealthPage: React.FC = () => {
                     to={`/map`}
                     className="text-teal-700 hover:text-teal-800 font-extrabold flex items-center space-x-1"
                   >
-                    <span>Inspect On Map</span>
+                    <span>{language === 'hi' ? 'नक्शे पर देखें' : 'Inspect On Map'}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>

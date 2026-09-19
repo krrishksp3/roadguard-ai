@@ -3,8 +3,10 @@ import { api } from '../services/api';
 import { TenderRecord } from '../../../shared/types';
 import { FileText, ExternalLink, ShieldCheck, Building, CheckCircle2, AlertCircle, Info, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../i18n/LanguageContext';
 
 export const TenderIntelligencePage: React.FC = () => {
+  const { dict: t } = useLanguage();
   const [tenders, setTenders] = useState<TenderRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -29,21 +31,21 @@ export const TenderIntelligencePage: React.FC = () => {
         <div>
           <div className="inline-flex items-center space-x-2 bg-white border border-slate-200 shadow-subtle px-3 py-1 rounded-full text-xs font-bold text-teal-800 mb-2">
             <FileText className="w-3.5 h-3.5 text-teal-600" />
-            <span>Procurement Reference Layer</span>
+            <span>{t.tenders.procurementLayer}</span>
             <span>•</span>
-            <span>Contractor Accountability</span>
+            <span>{t.tenders.accountability}</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black font-heading text-ink-950 tracking-tight uppercase">
-            TENDER INTELLIGENCE
+            {t.tenders.pageTitle}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
-            Correlating road segments with public procurement archives, contractor liability scopes, and defect warranty periods.
+            {t.tenders.pageSubtitle}
           </p>
         </div>
 
         <div className="flex items-center space-x-2">
           <span className="bg-amber-50 text-amber-900 border border-amber-300 px-3 py-1.5 rounded-xl text-xs font-bold font-mono">
-            Prototype Demo Records
+            {t.tenders.demoBadge}
           </span>
         </div>
       </div>
@@ -52,9 +54,9 @@ export const TenderIntelligencePage: React.FC = () => {
       <div className="p-4 bg-warm-100 border border-slate-200 rounded-2xl flex items-start space-x-3 text-xs text-slate-600">
         <Info className="w-5 h-5 text-teal-700 mt-0.5 shrink-0" />
         <div>
-          <span className="font-bold text-ink-950 block">Demonstration Procurement Dataset:</span>
+          <span className="font-bold text-ink-950 block">{t.tenders.bannerTitle}</span>
           <p className="text-slate-600 mt-0.5 leading-relaxed">
-            The tender records below are prototype demo references modeled after real UP State e-Procurement tenders for demonstration purposes during SIH 2026. They do not constitute live government transactions.
+            {t.tenders.bannerText}
           </p>
         </div>
       </div>
@@ -62,7 +64,7 @@ export const TenderIntelligencePage: React.FC = () => {
       {loading ? (
         <div className="text-center py-20 space-y-2">
           <div className="w-8 h-8 rounded-full border-2 border-teal-600 border-t-transparent animate-spin mx-auto" />
-          <p className="text-xs font-semibold text-slate-500">Loading procurement reference records...</p>
+          <p className="text-xs font-semibold text-slate-500">{t.tenders.loading}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -95,17 +97,17 @@ export const TenderIntelligencePage: React.FC = () => {
                 </div>
 
                 <div className="bg-warm-50 p-3.5 rounded-2xl border border-slate-100 text-xs text-slate-700 leading-relaxed">
-                  <span className="font-bold text-ink-950 block mb-0.5">Scope of Civil Work:</span>
+                  <span className="font-bold text-ink-950 block mb-0.5">{t.tenders.scopeLabel}</span>
                   {tender.workDescription}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div className="bg-warm-100 p-3 rounded-2xl border border-slate-200">
-                    <span className="text-slate-400 block text-[10px] font-bold uppercase">Sanctioned Value</span>
+                    <span className="text-slate-400 block text-[10px] font-bold uppercase">{t.tenders.sanctionedValue}</span>
                     <span className="font-bold text-teal-700 text-sm">{tender.tenderValue}</span>
                   </div>
                   <div className="bg-warm-100 p-3 rounded-2xl border border-slate-200">
-                    <span className="text-slate-400 block text-[10px] font-bold uppercase">Execution Period</span>
+                    <span className="text-slate-400 block text-[10px] font-bold uppercase">{t.tenders.executionPeriod}</span>
                     <span className="font-semibold text-ink-950">{tender.workPeriod}</span>
                   </div>
                 </div>
@@ -114,16 +116,16 @@ export const TenderIntelligencePage: React.FC = () => {
                   <div className="flex items-start space-x-1.5">
                     <Building className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
                     <div>
-                      <span className="text-slate-400 text-[10px] font-bold uppercase block">Inviting Authority</span>
+                      <span className="text-slate-400 text-[10px] font-bold uppercase block">{t.tenders.invitingAuthority}</span>
                       <span className="text-slate-800 font-medium">{tender.invitingAuthority}</span>
                     </div>
                   </div>
 
                   <div className="pt-1">
-                    <span className="text-slate-400 text-[10px] font-bold uppercase block">Awarded Contractor</span>
+                    <span className="text-slate-400 text-[10px] font-bold uppercase block">{t.tenders.awardedContractor}</span>
                     <span className="font-semibold text-ink-950">{tender.contractor}</span>
                     <span className="text-[10px] text-slate-400 font-mono block italic">
-                      Status: {tender.contractorStatus}
+                      {t.tenders.contractorStatus} {tender.contractorStatus}
                     </span>
                   </div>
                 </div>
@@ -131,7 +133,7 @@ export const TenderIntelligencePage: React.FC = () => {
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                 <span className="text-slate-400 font-mono text-[11px]">
-                  Archived: {tender.sourceDate}
+                  {t.tenders.archivedDate} {tender.sourceDate}
                 </span>
                 <a
                   href={tender.officialSourceUrl}
@@ -139,7 +141,7 @@ export const TenderIntelligencePage: React.FC = () => {
                   rel="noreferrer"
                   className="text-teal-700 hover:text-teal-800 font-extrabold flex items-center space-x-1"
                 >
-                  <span>Portal Archive</span>
+                  <span>{t.tenders.portalArchive}</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               </div>

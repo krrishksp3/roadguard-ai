@@ -1,6 +1,7 @@
 import React from 'react';
 import { StatusTimelineEvent, ComplaintStatus } from '../../../../shared/types';
-import { CheckCircle, Circle, Clock, Wrench, ShieldCheck, AlertCircle } from 'lucide-react';
+import { useLanguage } from '../../i18n/LanguageContext';
+import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
 
 interface ComplaintTimelineProps {
   timeline: StatusTimelineEvent[];
@@ -8,39 +9,47 @@ interface ComplaintTimelineProps {
 }
 
 export const ComplaintTimeline: React.FC<ComplaintTimelineProps> = ({ timeline, currentStatus }) => {
+  const { dict, language } = useLanguage();
+
   if (currentStatus === 'CANCELLED') {
     return (
       <div className="bg-rose-50/80 rounded-xl p-5 border border-rose-200 shadow-sm space-y-3">
         <div className="flex items-center space-x-2.5">
           <AlertCircle className="w-5 h-5 text-rose-600" />
           <h3 className="text-sm font-bold uppercase tracking-wider text-rose-900">
-            Intake Validation — Report Cancelled
+            {language === 'hi' ? 'प्रारंभिक जांच — रिपोर्ट निरस्त' : 'Intake Validation — Report Cancelled'}
           </h3>
         </div>
         <div className="bg-white rounded-xl p-3.5 border border-rose-200/80 text-xs space-y-2">
           <div className="flex items-center space-x-2 text-emerald-700 font-semibold">
             <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Step 1: Report Submitted by Citizen</span>
+            <span>
+              {language === 'hi' ? 'चरण 1: नागरिक द्वारा रिपोर्ट प्रस्तुत' : 'Step 1: Report Submitted by Citizen'}
+            </span>
           </div>
           <div className="flex items-center space-x-2 text-rose-700 font-bold">
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-            <span>Step 2: Image Validation → INVALID EVIDENCE (Intake Stopped)</span>
+            <span>
+              {language === 'hi' ? 'चरण 2: फोटो जांच → कोई सड़क खराबी नहीं मिली' : 'Step 2: Image Validation → INVALID EVIDENCE (Intake Stopped)'}
+            </span>
           </div>
         </div>
         <p className="text-xs text-rose-700">
-          No supported road damage was detected in the uploaded evidence. Complaint stopped at intake and not dispatched to road authority.
+          {language === 'hi'
+            ? 'अपलोड की गई फोटो में सड़क खराबी की पुष्टि नहीं हुई। रिपोर्ट को विभागीय आवंटन से पहले ही निरस्त कर दिया गया।'
+            : 'No supported road damage was detected in the uploaded evidence. Complaint stopped at intake and not dispatched to road authority.'}
         </p>
       </div>
     );
   }
 
   const stages = [
-    { key: 'REPORTED', label: 'REPORTED', matches: ['REPORTED'] },
-    { key: 'AI_ANALYSIS', label: 'AI ANALYSIS', matches: ['AI_ANALYZED'] },
-    { key: 'ASSIGNED', label: 'ASSIGNED', matches: ['ASSIGNED', 'ACKNOWLEDGED'] },
-    { key: 'ACTION_IN_PROGRESS', label: 'ACTION IN PROGRESS', matches: ['INSPECTION_SCHEDULED', 'REPAIR_IN_PROGRESS'] },
-    { key: 'VERIFICATION', label: 'VERIFICATION', matches: ['AI_VERIFIED', 'NEEDS_REINSPECTION'] },
-    { key: 'RESOLVED', label: 'RESOLVED', matches: ['RESOLVED'] },
+    { key: 'REPORTED', label: 'REPORTED', sublabel: language === 'hi' ? 'रिपोर्ट दर्ज' : 'Reported', matches: ['REPORTED'] },
+    { key: 'AI_ANALYSIS', label: 'AI ANALYSIS', sublabel: language === 'hi' ? 'AI विश्लेषण' : 'AI Analysis', matches: ['AI_ANALYZED'] },
+    { key: 'ASSIGNED', label: 'ASSIGNED', sublabel: language === 'hi' ? 'विभाग को सौंपा' : 'Assigned', matches: ['ASSIGNED', 'ACKNOWLEDGED'] },
+    { key: 'ACTION_IN_PROGRESS', label: 'IN PROGRESS', sublabel: language === 'hi' ? 'मरम्मत जारी' : 'Action In Progress', matches: ['INSPECTION_SCHEDULED', 'REPAIR_IN_PROGRESS'] },
+    { key: 'VERIFICATION', label: 'VERIFICATION', sublabel: language === 'hi' ? 'सत्यापन' : 'Verification', matches: ['AI_VERIFIED', 'NEEDS_REINSPECTION'] },
+    { key: 'RESOLVED', label: 'RESOLVED', sublabel: language === 'hi' ? 'समाधान' : 'Resolved', matches: ['RESOLVED'] },
   ];
 
   // Map status to active stage index
@@ -65,10 +74,12 @@ export const ComplaintTimeline: React.FC<ComplaintTimelineProps> = ({ timeline, 
     <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <h3 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center space-x-2">
-          <Clock className="w-4 h-4 text-gov-700" />
-          <span>REPORT TRACKING TIMELINE</span>
+          <Clock className="w-4 h-4 text-teal-700" />
+          <span>{dict.reportDetail.timelineCardTitle}</span>
         </h3>
-        <span className="text-[10px] text-slate-400 font-mono">Live Resolution Feed</span>
+        <span className="text-[10px] text-slate-400 font-mono">
+          {language === 'hi' ? 'लाइव समाधान विवरण' : 'Live Resolution Feed'}
+        </span>
       </div>
 
       {/* 6-Stage Milestone Flow (Responsive) */}
@@ -86,7 +97,7 @@ export const ComplaintTimeline: React.FC<ComplaintTimelineProps> = ({ timeline, 
                 isDone
                   ? 'bg-emerald-50/60 border-emerald-300 text-emerald-900'
                   : isCurrent
-                  ? 'bg-gov-50 border-gov-500 text-gov-950 ring-2 ring-gov-200'
+                  ? 'bg-teal-50 border-teal-500 text-teal-950 ring-2 ring-teal-200'
                   : 'bg-slate-50 border-slate-200 text-slate-400'
               }`}
             >
@@ -100,9 +111,14 @@ export const ComplaintTimeline: React.FC<ComplaintTimelineProps> = ({ timeline, 
                     : ''}
                 </span>
               </div>
-              <span className="text-[11px] font-black font-heading leading-tight block">
-                {stage.label}
-              </span>
+              <div>
+                <span className="text-[11px] font-black font-heading leading-tight block">
+                  {stage.label}
+                </span>
+                <span className="text-[10px] opacity-80 block">
+                  {stage.sublabel}
+                </span>
+              </div>
             </div>
           );
         })}
@@ -111,12 +127,12 @@ export const ComplaintTimeline: React.FC<ComplaintTimelineProps> = ({ timeline, 
       {/* Event history log */}
       <div className="space-y-3 pt-3 border-t border-slate-100">
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-          Activity Log
+          {language === 'hi' ? 'गतिविधि इतिहास' : 'Activity Log'}
         </span>
         {timeline.map((event, idx) => (
           <div key={event.id || idx} className="flex space-x-3 text-xs">
             <div className="flex flex-col items-center">
-              <div className="w-2.5 h-2.5 rounded-full bg-gov-700 mt-1"></div>
+              <div className="w-2.5 h-2.5 rounded-full bg-teal-700 mt-1"></div>
               {idx < timeline.length - 1 && <div className="w-0.5 flex-1 bg-slate-200 mt-1"></div>}
             </div>
             <div className="flex-1 pb-2">
@@ -129,7 +145,8 @@ export const ComplaintTimeline: React.FC<ComplaintTimelineProps> = ({ timeline, 
               <p className="text-[11px] text-slate-600 mt-0.5">{event.description}</p>
               {event.actorName && (
                 <span className="text-[10px] text-slate-400 font-mono mt-0.5 block">
-                  Action by: {event.actorName} ({event.actorRole})
+                  {language === 'hi' ? 'कार्यवाही द्वारा: ' : 'Action by: '}
+                  {event.actorName} ({event.actorRole})
                 </span>
               )}
             </div>

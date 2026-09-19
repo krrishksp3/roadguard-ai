@@ -5,10 +5,12 @@ import { ReportsMap } from '../components/map/ReportsMap';
 import { Layers, AlertTriangle, CheckCircle2, Clock, MapPin, Sparkles, X, ChevronRight, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { StatusBadge } from '../components/ui/StatusBadge';
+import { useLanguage } from '../i18n/LanguageContext';
 
 type MapFilter = 'ALL' | 'HIGH_RISK' | 'IN_PROGRESS' | 'RESOLVED';
 
 export const PublicMapPage: React.FC = () => {
+  const { dict, language, getDamageTypeLabel } = useLanguage();
   const [allReports, setAllReports] = useState<RoadReport[]>([]);
   const [activeFilter, setActiveFilter] = useState<MapFilter>('ALL');
   const [selectedReport, setSelectedReport] = useState<RoadReport | null>(null);
@@ -59,15 +61,15 @@ export const PublicMapPage: React.FC = () => {
         <div>
           <div className="inline-flex items-center space-x-2 bg-white border border-slate-200 shadow-subtle px-3 py-1 rounded-full text-xs font-bold text-teal-800 mb-2">
             <MapPin className="w-3.5 h-3.5 text-teal-600" />
-            <span>Public Civic Infrastructure</span>
+            <span>{language === 'hi' ? 'सार्वजनिक नागरिक अवसंरचना' : 'Public Civic Infrastructure'}</span>
             <span>•</span>
-            <span>Meerut Zone</span>
+            <span>{language === 'hi' ? 'मेरठ क्षेत्र' : 'Meerut Zone'}</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black font-heading text-ink-950 tracking-tight uppercase">
-            PUBLIC ROAD MAP
+            {dict.publicMap.pageTitle}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Real-time geospatial tracking of road hazards, damage diagnoses, and verified civic remediation.
+            {dict.publicMap.pageSubtitle}
           </p>
         </div>
 
@@ -75,7 +77,7 @@ export const PublicMapPage: React.FC = () => {
           to="/report"
           className="btn-lift self-start sm:self-auto bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white text-xs sm:text-sm font-extrabold px-4 py-2.5 rounded-xl transition shadow-md shadow-teal-900/15 active:scale-95 flex items-center space-x-1.5"
         >
-          <span>Report an Issue</span>
+          <span>{dict.nav.reportIssue}</span>
           <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
@@ -98,7 +100,7 @@ export const PublicMapPage: React.FC = () => {
                   : 'text-slate-300 hover:text-white hover:bg-ink-850'
               }`}
             >
-              <span>ALL</span>
+              <span>{dict.common.all.toUpperCase()}</span>
               <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-ink-800 text-slate-300">
                 {allReports.length}
               </span>
@@ -116,7 +118,7 @@ export const PublicMapPage: React.FC = () => {
                   : 'text-slate-300 hover:text-white hover:bg-ink-850'
               }`}
             >
-              <span>HIGH RISK</span>
+              <span>{language === 'hi' ? 'उच्च जोखिम' : 'HIGH RISK'}</span>
               <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-rose-900/60 text-rose-200">
                 {highRiskCount}
               </span>
@@ -134,7 +136,7 @@ export const PublicMapPage: React.FC = () => {
                   : 'text-slate-300 hover:text-white hover:bg-ink-850'
               }`}
             >
-              <span>IN PROGRESS</span>
+              <span>{language === 'hi' ? 'प्रगति पर' : 'IN PROGRESS'}</span>
               <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-900/60 text-amber-200">
                 {inProgressCount}
               </span>
@@ -152,7 +154,7 @@ export const PublicMapPage: React.FC = () => {
                   : 'text-slate-300 hover:text-white hover:bg-ink-850'
               }`}
             >
-              <span>RESOLVED</span>
+              <span>{language === 'hi' ? 'हल हुआ' : 'RESOLVED'}</span>
               <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-900/60 text-emerald-200">
                 {resolvedCount}
               </span>
@@ -163,19 +165,19 @@ export const PublicMapPage: React.FC = () => {
           <div className="pointer-events-auto hidden md:flex items-center space-x-3 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-slate-200 shadow-float text-[11px] font-bold text-slate-600">
             <span className="flex items-center space-x-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-              <span>Critical</span>
+              <span>{dict.publicMap.legendCritical}</span>
             </span>
             <span className="flex items-center space-x-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-              <span>High</span>
+              <span>{dict.publicMap.legendHigh}</span>
             </span>
             <span className="flex items-center space-x-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-              <span>Medium</span>
+              <span>{dict.publicMap.legendMedium}</span>
             </span>
             <span className="flex items-center space-x-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-              <span>Resolved</span>
+              <span>{dict.common.resolved}</span>
             </span>
           </div>
         </div>
@@ -209,24 +211,24 @@ export const PublicMapPage: React.FC = () => {
 
               <div>
                 <h3 className="font-heading font-black text-base text-ink-950 capitalize">
-                  {selectedReport.damageType.replace(/_/g, ' ')}
+                  {getDamageTypeLabel(selectedReport.damageType)}
                 </h3>
                 <p className="text-xs text-slate-500 truncate mt-0.5">
-                  {selectedReport.address || 'Meerut Road Network'}
+                  {selectedReport.address || (language === 'hi' ? 'मेरठ सड़क नेटवर्क' : 'Meerut Road Network')}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="bg-warm-50 p-2.5 rounded-xl border border-slate-100">
-                  <span className="text-[10px] text-slate-400 block font-semibold uppercase">Priority Score</span>
+                  <span className="text-[10px] text-slate-400 block font-semibold uppercase">{dict.common.priority}</span>
                   <span className={`font-black text-sm ${selectedReport.riskScore >= 70 ? 'text-rose-600' : 'text-slate-900'}`}>
                     {selectedReport.riskScore} / 100
                   </span>
                 </div>
                 <div className="bg-warm-50 p-2.5 rounded-xl border border-slate-100">
-                  <span className="text-[10px] text-slate-400 block font-semibold uppercase">Report Date</span>
+                  <span className="text-[10px] text-slate-400 block font-semibold uppercase">{dict.common.date}</span>
                   <span className="font-semibold text-slate-800 text-xs">
-                    {new Date(selectedReport.createdAt).toLocaleDateString()}
+                    {new Date(selectedReport.createdAt).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN')}
                   </span>
                 </div>
               </div>
@@ -235,7 +237,7 @@ export const PublicMapPage: React.FC = () => {
                 to={`/reports/${selectedReport.id}`}
                 className="btn-lift w-full bg-teal-700 hover:bg-teal-600 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs transition flex items-center justify-center space-x-1.5 shadow-sm"
               >
-                <span>View Full Report & Timeline</span>
+                <span>{dict.myReports.viewDetails}</span>
                 <ChevronRight className="w-4 h-4" />
               </Link>
             </div>

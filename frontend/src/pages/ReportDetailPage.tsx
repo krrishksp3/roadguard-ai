@@ -25,9 +25,12 @@ import {
   ArrowRight,
 } from 'lucide-react';
 
+import { useLanguage } from '../i18n/LanguageContext';
+
 export const ReportDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { isAuthority } = useAuth();
+  const { dict, language, getStatusExplanation, getDamageTypeLabel, getSeverityLabel } = useLanguage();
   const [report, setReport] = useState<RoadReport | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
@@ -207,7 +210,7 @@ export const ReportDetailPage: React.FC = () => {
             className="btn-lift inline-flex items-center space-x-1.5 text-xs font-bold text-slate-500 hover:text-ink-900 bg-warm-100 px-3.5 py-1.5 rounded-xl border border-slate-200 transition"
           >
             <ChevronLeft className="w-4 h-4" />
-            <span>Back to Reports</span>
+            <span>{dict.reportDetail.backToReports}</span>
           </Link>
 
           {/* SLA Clock Indicator */}
@@ -219,7 +222,7 @@ export const ReportDetailPage: React.FC = () => {
           ) : (
             <div className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold">
               <Clock className="w-3.5 h-3.5 text-emerald-600" />
-              <span>SLA Target: {report.slaTargetHours}h Remaining</span>
+              <span>SLA: {report.slaTargetHours}h {dict.myReports.slaRemaining}</span>
             </div>
           )}
         </div>
@@ -228,10 +231,12 @@ export const ReportDetailPage: React.FC = () => {
           <div>
             <div className="flex flex-wrap items-center gap-2.5 mb-1.5">
               <h1 className="text-3xl sm:text-4xl font-black font-heading text-ink-950 tracking-tight uppercase">
-                {report.damageType.replace(/_/g, ' ')}
+                {getDamageTypeLabel(report.damageType)}
               </h1>
               <span className={`text-xs font-black px-3 py-1 rounded-xl border uppercase tracking-wider ${priorityColor}`}>
-                {priorityLabel} ({report.riskScore}/100)
+                {language === 'hi'
+                  ? (report.riskScore >= 70 ? 'उच्च प्राथमिकता' : report.riskScore >= 40 ? 'मध्यम प्राथमिकता' : 'सामान्य प्राथमिकता')
+                  : priorityLabel} ({report.riskScore}/100)
               </span>
               <StatusBadge status={report.status} />
             </div>
@@ -243,10 +248,10 @@ export const ReportDetailPage: React.FC = () => {
               <span>•</span>
               <span className="flex items-center space-x-1 font-semibold text-slate-700">
                 <MapPin className="w-3.5 h-3.5 text-teal-600" />
-                <span>{report.address || 'Meerut Road Network, Uttar Pradesh'}</span>
+                <span>{report.address || (language === 'hi' ? 'सड़क नेटवर्क, उत्तर प्रदेश' : 'Road Network, Uttar Pradesh')}</span>
               </span>
               <span>•</span>
-              <span>Reported {new Date(report.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+              <span>{dict.reportDetail.filedOn} {new Date(report.createdAt).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
             </div>
           </div>
 
@@ -259,18 +264,18 @@ export const ReportDetailPage: React.FC = () => {
                 onChange={(e) => handleUpdateStatus(e.target.value as ComplaintStatus)}
                 className="text-xs font-bold bg-warm-100 border border-slate-300 rounded-xl px-3 py-2 outline-none"
               >
-                <option value="REPORTED">Reported</option>
-                <option value="ASSIGNED">Assign Division</option>
-                <option value="INSPECTION_SCHEDULED">Schedule Inspection</option>
-                <option value="REPAIR_IN_PROGRESS">Repair in Progress</option>
-                <option value="RESOLVED">Mark Resolved</option>
+                <option value="REPORTED">REPORTED (दर्ज)</option>
+                <option value="ASSIGNED">ASSIGNED (विभाग आवंटित)</option>
+                <option value="INSPECTION_SCHEDULED">INSPECTION_SCHEDULED (निरीक्षण)</option>
+                <option value="REPAIR_IN_PROGRESS">REPAIR_IN_PROGRESS (मरम्मत चालू)</option>
+                <option value="RESOLVED">RESOLVED (हल हुआ)</option>
               </select>
 
               <button
                 onClick={() => setShowEscalateModal(true)}
                 className="text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white px-3 py-2 rounded-xl transition"
               >
-                Escalate
+                {language === 'hi' ? 'उच्चाधिकारी को भेजें' : 'Escalate'}
               </button>
             </div>
           )}
@@ -281,25 +286,27 @@ export const ReportDetailPage: React.FC = () => {
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-card space-y-5">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
-            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider block">CITIZEN STATUS TRACKING</span>
+            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider block">
+              {dict.reportDetail.citizenTracking}
+            </span>
             <h2 className="text-base sm:text-lg font-black font-heading text-ink-950 uppercase tracking-tight">
-              REPORT JOURNEY
+              {dict.reportDetail.reportJourney}
             </h2>
           </div>
           <span className="text-xs text-slate-500 font-bold bg-warm-100 px-3 py-1 rounded-xl border border-slate-200">
-            {report.status.replace(/_/g, ' ')}
+            {report.status} {language === 'hi' ? `(${getStatusExplanation(report.status)})` : ''}
           </span>
         </div>
 
         {/* 6 Lifecycle Steps Visualizer */}
         <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 pt-1">
           {[
-            { label: 'Reported', index: 0 },
-            { label: 'Analyzed', index: 1 },
-            { label: 'Assigned', index: 2 },
-            { label: 'Action in Progress', index: 3 },
-            { label: 'Verification', index: 4 },
-            { label: 'Resolved', index: 5 },
+            { label: dict.reportDetail.stageReported, index: 0 },
+            { label: dict.reportDetail.stageAnalyzed, index: 1 },
+            { label: dict.reportDetail.stageAssigned, index: 2 },
+            { label: dict.reportDetail.stageActionInProgress, index: 3 },
+            { label: dict.reportDetail.stageVerification, index: 4 },
+            { label: dict.reportDetail.stageResolved, index: 5 },
           ].map((step) => {
             const state = getStageState(step.index);
             return (
@@ -332,7 +339,7 @@ export const ReportDetailPage: React.FC = () => {
                   {step.label}
                 </span>
                 <span className="text-[10px] uppercase tracking-wider font-semibold opacity-70 block mt-0.5">
-                  {state === 'completed' ? 'Done' : state === 'active' ? 'In Progress' : 'Upcoming'}
+                  {state === 'completed' ? dict.reportDetail.stageDone : state === 'active' ? dict.reportDetail.stageInProgress : dict.reportDetail.stageUpcoming}
                 </span>
               </div>
             );
@@ -360,11 +367,11 @@ export const ReportDetailPage: React.FC = () => {
               {isDemoEvidence ? (
                 <div className="bg-amber-500/90 text-amber-950 font-bold px-2.5 py-1 rounded-xl text-[10px] tracking-wide flex items-center space-x-1 shadow-sm">
                   <ShieldAlert className="w-3 h-3 text-amber-950" />
-                  <span>DEMO EVIDENCE REFERENCE</span>
+                  <span>{dict.reportDetail.demoEvidence}</span>
                 </div>
               ) : (
                 <div className="bg-teal-600/90 text-white font-bold px-2.5 py-1 rounded-xl text-[10px] tracking-wide shadow-sm">
-                  CITIZEN EVIDENCE
+                  {dict.reportDetail.citizenEvidence}
                 </div>
               )}
             </div>
@@ -373,7 +380,7 @@ export const ReportDetailPage: React.FC = () => {
               type="button"
               onClick={() => setIsImageZoomed(true)}
               className="absolute top-4 right-4 bg-ink-950/80 hover:bg-ink-900 text-white p-2 rounded-xl backdrop-blur-md transition"
-              title="Inspect Fullscreen"
+              title={language === 'hi' ? 'ज़ूम करें' : 'Inspect Fullscreen'}
             >
               <ZoomIn className="w-4 h-4" />
             </button>
@@ -381,10 +388,10 @@ export const ReportDetailPage: React.FC = () => {
 
           <div className="p-6 space-y-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-              Citizen Field Notes
+              {dict.reportDetail.fieldNotes}
             </span>
             <p className="text-sm text-slate-800 font-medium leading-relaxed">
-              {report.description || 'Road defect photo submitted via RoadGuard intake.'}
+              {report.description || (language === 'hi' ? 'सड़क क्षति की फोटो RoadGuard पर दर्ज की गई।' : 'Road defect photo submitted via RoadGuard intake.')}
             </p>
           </div>
         </div>
@@ -412,36 +419,36 @@ export const ReportDetailPage: React.FC = () => {
             </div>
             <div>
               <h3 className="font-heading font-black text-ink-950 text-base sm:text-lg">
-                Road damage could not be verified from this image.
+                {dict.reportDetail.noDamageTitle}
               </h3>
               <p className="text-xs text-slate-500">
-                Your report was not forwarded to the authority because the uploaded image did not provide sufficient road-damage evidence.
+                {dict.reportDetail.noDamageSubtitle}
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-              <span className="text-slate-400 block text-[10px] font-bold uppercase">Evidence Status</span>
-              <span className="font-black text-rose-700 text-sm">Not Verified</span>
+              <span className="text-slate-400 block text-[10px] font-bold uppercase">{language === 'hi' ? 'साक्ष्य स्थिति' : 'Evidence Status'}</span>
+              <span className="font-black text-rose-700 text-sm">{language === 'hi' ? 'सत्यापित नहीं' : 'Not Verified'}</span>
             </div>
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-              <span className="text-slate-400 block text-[10px] font-bold uppercase">Risk Score</span>
+              <span className="text-slate-400 block text-[10px] font-bold uppercase">{dict.common.riskScore}</span>
               <span className="font-black text-slate-900 text-sm">0</span>
             </div>
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-              <span className="text-slate-400 block text-[10px] font-bold uppercase">Priority</span>
-              <span className="font-black text-slate-900 text-sm">None</span>
+              <span className="text-slate-400 block text-[10px] font-bold uppercase">{dict.common.priority}</span>
+              <span className="font-black text-slate-900 text-sm">{language === 'hi' ? 'कोई नहीं' : 'None'}</span>
             </div>
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-              <span className="text-slate-400 block text-[10px] font-bold uppercase">Authority Assignment</span>
-              <span className="font-black text-slate-600 text-sm">Not Created</span>
+              <span className="text-slate-400 block text-[10px] font-bold uppercase">{dict.common.assignedDepartment}</span>
+              <span className="font-black text-slate-600 text-sm">{language === 'hi' ? 'आवंटित नहीं' : 'Not Created'}</span>
             </div>
           </div>
 
           {report.aiAnalysis?.description && (
             <div className="p-3.5 bg-warm-50 rounded-2xl border border-slate-200 text-xs text-slate-600">
-              <span className="font-bold text-slate-700 mr-1.5">Intake Verification Note:</span>
+              <span className="font-bold text-slate-700 mr-1.5">{language === 'hi' ? 'प्रारंभिक सत्यापन टिप्पणी:' : 'Intake Verification Note:'}</span>
               {report.aiAnalysis.description}
             </div>
           )}
@@ -459,54 +466,54 @@ export const ReportDetailPage: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <span className="text-xs font-black uppercase tracking-wider text-ink-950 flex items-center space-x-1.5">
                 <Sparkles className="w-4 h-4 text-teal-600" />
-                <span>AI ASSESSMENT</span>
+                <span>{dict.reportDetail.aiAnalysisCardTitle}</span>
               </span>
               <span className="text-[10px] bg-teal-50 text-teal-800 font-bold px-2.5 py-0.5 rounded-full border border-teal-200">
-                AI-assisted assessment
+                {language === 'hi' ? 'AI-सहायित विश्लेषण' : 'AI-assisted assessment'}
               </span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
               <div className="bg-warm-50 p-3 rounded-2xl border border-slate-200">
-                <span className="text-slate-400 block text-[10px] font-bold uppercase">Issue</span>
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">{language === 'hi' ? 'समस्या' : 'Issue'}</span>
                 <span className="font-black text-ink-950 capitalize text-sm">
-                  {report.aiAnalysis?.damageType?.replace(/_/g, ' ') || report.damageType?.replace(/_/g, ' ')}
+                  {getDamageTypeLabel(report.aiAnalysis?.damageType || report.damageType)}
                 </span>
               </div>
 
               <div className="bg-warm-50 p-3 rounded-2xl border border-slate-200">
-                <span className="text-slate-400 block text-[10px] font-bold uppercase">Severity</span>
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">{dict.common.severity}</span>
                 <span className="font-black text-ink-950 capitalize text-sm">
-                  {report.aiAnalysis?.severity || report.severity}
+                  {getSeverityLabel(report.aiAnalysis?.severity || report.severity)}
                 </span>
               </div>
 
               <div className="bg-warm-50 p-3 rounded-2xl border border-slate-200">
-                <span className="text-slate-400 block text-[10px] font-bold uppercase">Safety Risk</span>
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">{language === 'hi' ? 'सुरक्षा जोखिम' : 'Safety Risk'}</span>
                 <span className="font-black text-ink-950 capitalize text-sm">
                   {report.aiAnalysis?.roadSafetyRisk !== undefined
-                    ? (report.aiAnalysis.roadSafetyRisk >= 70 ? 'High' : report.aiAnalysis.roadSafetyRisk >= 40 ? 'Moderate' : 'Low')
-                    : (report.riskScore >= 70 ? 'High' : 'Moderate')}
+                    ? (report.aiAnalysis.roadSafetyRisk >= 70 ? (language === 'hi' ? 'उच्च' : 'High') : report.aiAnalysis.roadSafetyRisk >= 40 ? (language === 'hi' ? 'मध्यम' : 'Moderate') : (language === 'hi' ? 'कम' : 'Low'))
+                    : (report.riskScore >= 70 ? (language === 'hi' ? 'उच्च' : 'High') : (language === 'hi' ? 'मध्यम' : 'Moderate'))}
                 </span>
               </div>
 
               <div className="bg-warm-50 p-3 rounded-2xl border border-slate-200">
-                <span className="text-slate-400 block text-[10px] font-bold uppercase">Priority</span>
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">{dict.common.priority}</span>
                 <span className="font-black text-teal-700 text-sm">
                   {report.riskScore} / 100
                 </span>
               </div>
 
               <div className="bg-warm-50 p-3 rounded-2xl border border-slate-200">
-                <span className="text-slate-400 block text-[10px] font-bold uppercase">Duplicate</span>
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">{language === 'hi' ? 'समान शिकायत' : 'Duplicate'}</span>
                 <span className="font-black text-ink-950 text-sm">
-                  {report.isDuplicate ? 'Yes' : 'No'}
+                  {report.isDuplicate ? (language === 'hi' ? 'हाँ' : 'Yes') : (language === 'hi' ? 'नहीं' : 'No')}
                 </span>
               </div>
 
               {report.aiAnalysis?.confidence !== undefined && (
                 <div className="bg-warm-50 p-3 rounded-2xl border border-slate-200">
-                  <span className="text-slate-400 block text-[10px] font-bold uppercase">Confidence</span>
+                  <span className="text-slate-400 block text-[10px] font-bold uppercase">{dict.reportDetail.confidenceScore}</span>
                   <span className="font-black text-teal-700 text-sm">
                     {Math.round(report.aiAnalysis.confidence * 100)}%
                   </span>
@@ -515,7 +522,7 @@ export const ReportDetailPage: React.FC = () => {
             </div>
 
             <div className="text-[11px] text-slate-500 pt-1 border-t border-slate-100 flex items-center justify-between">
-              <span className="italic">Final action is reviewed by the responsible authority.</span>
+              <span className="italic">{language === 'hi' ? 'अंतिम कार्यवाही अधिकृत निकाय द्वारा सत्यापित की जाती है।' : 'Final action is reviewed by the responsible authority.'}</span>
             </div>
           </div>
         </div>
@@ -531,7 +538,7 @@ export const ReportDetailPage: React.FC = () => {
             <div className="flex items-center space-x-2">
               <Building className="w-4 h-4 text-teal-600" />
               <h3 className="font-black font-heading text-ink-950 text-sm sm:text-base">
-                CONTRACTOR ACCOUNTABILITY & TENDER SCOPE
+                {dict.reportDetail.contractorScope}
               </h3>
             </div>
             <span className="font-mono text-xs font-bold text-slate-600 bg-warm-100 px-2.5 py-1 rounded-xl border border-slate-200">
@@ -541,15 +548,15 @@ export const ReportDetailPage: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             <div className="bg-warm-100 p-3 rounded-2xl border border-slate-200">
-              <span className="text-slate-500 block text-[11px]">Awarded Contractor</span>
+              <span className="text-slate-500 block text-[11px]">{language === 'hi' ? 'आवंटित ठेकेदार' : 'Awarded Contractor'}</span>
               <span className="font-bold text-ink-950 text-xs block truncate">{tender.contractor}</span>
             </div>
             <div className="bg-warm-100 p-3 rounded-2xl border border-slate-200">
-              <span className="text-slate-500 block text-[11px]">Sanctioned Value</span>
+              <span className="text-slate-500 block text-[11px]">{language === 'hi' ? 'स्वीकृत राशि' : 'Sanctioned Value'}</span>
               <span className="font-bold text-teal-700 text-xs block">{tender.tenderValue}</span>
             </div>
             <div className="bg-warm-100 p-3 rounded-2xl border border-slate-200">
-              <span className="text-slate-500 block text-[11px]">Defect Liability Period</span>
+              <span className="text-slate-500 block text-[11px]">{language === 'hi' ? 'वारंटी / दायित्व अवधि' : 'Defect Liability Period'}</span>
               <span className="font-bold text-ink-950 text-xs block">{tender.workPeriod}</span>
             </div>
           </div>

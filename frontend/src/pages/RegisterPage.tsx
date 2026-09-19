@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../i18n/LanguageContext';
 import { Shield, Lock, Mail, User as UserIcon, ArrowRight, AlertCircle } from 'lucide-react';
 
 export const RegisterPage: React.FC = () => {
@@ -10,6 +11,7 @@ export const RegisterPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
+  const { dict, language } = useLanguage();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,7 +22,7 @@ export const RegisterPage: React.FC = () => {
       await register(name.trim(), email.trim(), password, 'CITIZEN');
       navigate('/report');
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
+      setError(err.message || (language === 'hi' ? 'खाता बनाने में त्रुटि हुई' : 'Registration failed'));
     } finally {
       setLoading(false);
     }
@@ -33,8 +35,8 @@ export const RegisterPage: React.FC = () => {
           <div className="w-12 h-12 bg-gradient-to-br from-teal-600 to-emerald-600 text-white rounded-2xl mx-auto flex items-center justify-center shadow-md shadow-teal-900/15">
             <Shield className="w-6 h-6 text-white" />
           </div>
-          <h2 className="text-2xl font-black font-heading text-ink-950 tracking-tight">Create Citizen Account</h2>
-          <p className="text-xs text-slate-500">Report road damage, track civic action, and verify repairs</p>
+          <h2 className="text-2xl font-black font-heading text-ink-950 tracking-tight">{dict.auth.signupTitle}</h2>
+          <p className="text-xs text-slate-500">{dict.auth.signupSubtitle}</p>
         </div>
 
         {error && (
@@ -46,7 +48,7 @@ export const RegisterPage: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">{dict.auth.fullNameLabel}</label>
             <div className="relative">
               <UserIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               <input
@@ -61,7 +63,7 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">{dict.auth.emailLabel}</label>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               <input
@@ -76,7 +78,7 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Password (min 6 characters)</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">{dict.auth.passwordLabel} (min 6)</label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               <input
@@ -96,15 +98,15 @@ export const RegisterPage: React.FC = () => {
             disabled={loading}
             className="btn-lift w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-extrabold py-3.5 rounded-xl shadow-md shadow-teal-900/15 transition flex items-center justify-center space-x-2 text-xs sm:text-sm uppercase tracking-wider disabled:opacity-50"
           >
-            <span>{loading ? 'Creating Account...' : 'Sign Up'}</span>
+            <span>{loading ? dict.common.loading : dict.auth.signUpButton}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
         <p className="text-center text-xs text-slate-500">
-          Already registered?{' '}
+          {dict.auth.haveAccount}{' '}
           <Link to="/login" className="text-teal-700 font-bold hover:underline">
-            Sign in
+            {dict.auth.signInButton}
           </Link>
         </p>
       </div>

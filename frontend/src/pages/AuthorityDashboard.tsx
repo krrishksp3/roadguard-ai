@@ -5,6 +5,7 @@ import { ReportsMap } from '../components/map/ReportsMap';
 import { StatusBadge, SeverityBadge } from '../components/ui/StatusBadge';
 import { RiskScoreMeter } from '../components/ui/RiskScoreMeter';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../i18n/LanguageContext';
 import {
   AlertTriangle,
   Clock,
@@ -27,6 +28,7 @@ import {
 } from 'lucide-react';
 
 export const AuthorityDashboard: React.FC = () => {
+  const { dict, language, getStatusExplanation, getDamageTypeLabel } = useLanguage();
   const [reports, setReports] = useState<RoadReport[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -76,28 +78,28 @@ export const AuthorityDashboard: React.FC = () => {
           <div className="space-y-2 border-b border-ink-850 pb-4">
             <div className="inline-flex items-center space-x-2 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider">
               <Shield className="w-3.5 h-3.5 text-amber-400" />
-              <span>CIVIL CONTROL CENTER</span>
+              <span>{language === 'hi' ? 'लोक निर्माण नियंत्रण केंद्र' : 'CIVIL CONTROL CENTER'}</span>
             </div>
             <h2 className="text-xl font-black font-heading text-white">
-              Meerut Operations
+              {language === 'hi' ? 'मेरठ कार्य संचालन' : 'Meerut Operations'}
             </h2>
             <p className="text-[11px] text-slate-400">
-              UP Public Works Department & Nagar Nigam Inter-Agency Portal
+              {language === 'hi' ? 'उत्तर प्रदेश लोक निर्माण विभाग एवं नगर निगम संयुक्त पोर्टल' : 'UP Public Works Department & Nagar Nigam Inter-Agency Portal'}
             </p>
           </div>
 
           {/* Quick Filters */}
           <div className="space-y-2">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-              Filter By Operational Status
+              {language === 'hi' ? 'कार्य स्थिति अनुसार फिल्टर' : 'Filter By Operational Status'}
             </span>
             <div className="space-y-1">
               {[
-                { id: '', label: 'All Incidents' },
-                { id: 'REPORTED', label: 'New Reports Pending Intake' },
-                { id: 'ASSIGNED', label: 'Dispatched to Division' },
-                { id: 'REPAIR_IN_PROGRESS', label: 'Active Field Remediation' },
-                { id: 'RESOLVED', label: 'Verified & Closed' },
+                { id: '', label: language === 'hi' ? 'सभी मामले' : 'All Incidents' },
+                { id: 'REPORTED', label: language === 'hi' ? 'नई रिपोर्ट (जांच लंबित)' : 'New Reports Pending Intake' },
+                { id: 'ASSIGNED', label: language === 'hi' ? 'संबंधित विभाग को प्रेषित' : 'Dispatched to Division' },
+                { id: 'REPAIR_IN_PROGRESS', label: language === 'hi' ? 'मरम्मत कार्य प्रगति पर' : 'Active Field Remediation' },
+                { id: 'RESOLVED', label: language === 'hi' ? 'सत्यापित एवं केस बंद' : 'Verified & Closed' },
               ].map((f) => (
                 <button
                   key={f.id}
@@ -118,7 +120,7 @@ export const AuthorityDashboard: React.FC = () => {
           {/* Sort By Toggle */}
           <div className="space-y-2 border-t border-ink-850 pt-4">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-              Queue Sorting Priority
+              {language === 'hi' ? 'प्राथमिकता क्रम' : 'Queue Sorting Priority'}
             </span>
             <div className="grid grid-cols-2 gap-1.5 p-1 bg-ink-900 rounded-xl border border-ink-800">
               <button
@@ -128,7 +130,7 @@ export const AuthorityDashboard: React.FC = () => {
                   sortBy === 'risk' ? 'bg-amber-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Risk Score
+                {dict.common.riskScore}
               </button>
               <button
                 type="button"
@@ -137,7 +139,7 @@ export const AuthorityDashboard: React.FC = () => {
                   sortBy === 'newest' ? 'bg-teal-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Newest First
+                {language === 'hi' ? 'नवीनतम पहले' : 'Newest First'}
               </button>
             </div>
           </div>
@@ -149,7 +151,7 @@ export const AuthorityDashboard: React.FC = () => {
             className="w-full bg-ink-900 hover:bg-ink-850 text-slate-200 border border-ink-800 text-xs font-bold py-2.5 rounded-xl transition flex items-center justify-center space-x-1.5"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            <span>Refresh Feed</span>
+            <span>{language === 'hi' ? 'रिफ्रेश करें' : 'Refresh Feed'}</span>
           </button>
         </aside>
 
@@ -159,12 +161,12 @@ export const AuthorityDashboard: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
             <div>
               <div className="inline-flex items-center space-x-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                <span>OPERATIONAL COMMAND CENTER</span>
+                <span>{language === 'hi' ? 'कार्य संचालन कमांड सेंटर' : 'OPERATIONAL COMMAND CENTER'}</span>
                 <span>•</span>
-                <span className="text-teal-700 font-semibold">LIVE DISPATCH FEED</span>
+                <span className="text-teal-700 font-semibold">{language === 'hi' ? 'लाइव कार्य आदेश' : 'LIVE DISPATCH FEED'}</span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-black font-heading text-ink-950 tracking-tight uppercase">
-                AUTHORITY OPERATIONS
+                {dict.authority.dashboardTitle}
               </h1>
             </div>
 
@@ -173,7 +175,7 @@ export const AuthorityDashboard: React.FC = () => {
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search corridor or ID..."
+                  placeholder={language === 'hi' ? 'सड़क या आईडी खोजें...' : 'Search corridor or ID...'}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9 pr-4 py-2 bg-white text-xs border border-slate-200 rounded-xl outline-none focus:border-teal-600 w-48 sm:w-64"
@@ -187,52 +189,52 @@ export const AuthorityDashboard: React.FC = () => {
             {/* OPEN REPORTS */}
             <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-card space-y-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                OPEN REPORTS
+                {language === 'hi' ? 'लंबित कार्य आदेश' : 'OPEN REPORTS'}
               </span>
               <span className="text-3xl font-black font-heading text-ink-950 block">
                 {openReportsCount}
               </span>
               <span className="text-[10px] text-teal-700 font-bold block">
-                Active in Meerut Zone
+                {language === 'hi' ? 'सक्रिय मामले' : 'Active in Meerut Zone'}
               </span>
             </div>
 
             {/* HIGH PRIORITY */}
             <div className="bg-white p-5 rounded-3xl border border-rose-200 bg-rose-50/20 shadow-card space-y-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-rose-700 block">
-                HIGH PRIORITY
+                {language === 'hi' ? 'उच्च प्राथमिकता' : 'HIGH PRIORITY'}
               </span>
               <span className="text-3xl font-black font-heading text-rose-600 block">
                 {highPriorityCount}
               </span>
               <span className="text-[10px] text-rose-600 font-bold block">
-                Risk Score ≥ 70
+                {language === 'hi' ? 'जोखिम स्कोर ≥ 70' : 'Risk Score ≥ 70'}
               </span>
             </div>
 
             {/* SLA DUE */}
             <div className="bg-white p-5 rounded-3xl border border-amber-200 bg-amber-50/20 shadow-card space-y-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 block">
-                SLA DUE
+                {language === 'hi' ? 'SLA समयसीमा निकट' : 'SLA DUE'}
               </span>
               <span className="text-3xl font-black font-heading text-amber-700 block">
                 {slaDueCount}
               </span>
               <span className="text-[10px] text-amber-700 font-bold block">
-                Approaching Deadline
+                {language === 'hi' ? 'समयसीमा निकट' : 'Approaching Deadline'}
               </span>
             </div>
 
             {/* VERIFICATION */}
             <div className="bg-white p-5 rounded-3xl border border-emerald-200 bg-emerald-50/20 shadow-card space-y-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 block">
-                VERIFICATION
+                {language === 'hi' ? 'सत्यापन आवश्यक' : 'VERIFICATION'}
               </span>
               <span className="text-3xl font-black font-heading text-emerald-700 block">
                 {verificationCount}
               </span>
               <span className="text-[10px] text-emerald-700 font-bold block">
-                Evidence Awaiting Review
+                {language === 'hi' ? 'सत्यापन हेतु लंबित' : 'Evidence Awaiting Review'}
               </span>
             </div>
           </div>
@@ -241,23 +243,25 @@ export const AuthorityDashboard: React.FC = () => {
           <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider block">ACTION QUEUE</span>
+                <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider block">
+                  {language === 'hi' ? 'कार्यवाही सूची' : 'ACTION QUEUE'}
+                </span>
                 <h2 className="text-lg font-black font-heading text-ink-950 uppercase">
-                  PRIORITY QUEUE
+                  {language === 'hi' ? 'प्राथमिकता कार्य सूची' : 'PRIORITY QUEUE'}
                 </h2>
               </div>
               <span className="text-xs text-slate-500 font-mono">
-                {reports.length} Incident Work Orders
+                {reports.length} {language === 'hi' ? 'कार्य आदेश' : 'Incident Work Orders'}
               </span>
             </div>
 
             {loading ? (
               <div className="text-center py-12 text-slate-500 text-xs">
-                Loading priority queue records...
+                {language === 'hi' ? 'कार्य आदेश लोड हो रहे हैं...' : 'Loading priority queue records...'}
               </div>
             ) : reports.length === 0 ? (
               <div className="text-center py-12 text-slate-400 text-xs">
-                No reports found matching the selected operational criteria.
+                {language === 'hi' ? 'इस श्रेणी में कोई शिकायत नहीं मिली।' : 'No reports found matching the selected operational criteria.'}
               </div>
             ) : (
               <div className="space-y-3">
@@ -285,10 +289,10 @@ export const AuthorityDashboard: React.FC = () => {
                           </span>
                         </div>
                         <h3 className="font-heading font-black text-sm text-ink-950 capitalize truncate">
-                          {report.damageType.replace(/_/g, ' ')}
+                          {getDamageTypeLabel(report.damageType)}
                         </h3>
                         <p className="text-xs text-slate-500 truncate max-w-xl">
-                          {report.address || 'Meerut Road Network'}
+                          {report.address || (language === 'hi' ? 'मेरठ सड़क नेटवर्क' : 'Meerut Road Network')}
                         </p>
                       </div>
 
@@ -297,7 +301,7 @@ export const AuthorityDashboard: React.FC = () => {
                           to={`/reports/${report.id}`}
                           className="btn-lift bg-ink-950 hover:bg-ink-900 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center space-x-1"
                         >
-                          <span>Manage Action</span>
+                          <span>{dict.authority.takeActionBtn}</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
                       </div>
@@ -312,12 +316,14 @@ export const AuthorityDashboard: React.FC = () => {
           <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider block">GEOSPATIAL COMMAND</span>
+                <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider block">
+                  {language === 'hi' ? 'भू-स्थानिक नियंत्रण' : 'GEOSPATIAL COMMAND'}
+                </span>
                 <h2 className="text-lg font-black font-heading text-ink-950 uppercase">
-                  OPERATIONAL CORRIDOR MAP
+                  {language === 'hi' ? 'सड़क मरम्मत मानचित्र' : 'OPERATIONAL CORRIDOR MAP'}
                 </h2>
               </div>
-              <span className="text-xs text-slate-500">Meerut Municipal Zone</span>
+              <span className="text-xs text-slate-500">{language === 'hi' ? 'मेरठ नगर निगम क्षेत्र' : 'Meerut Municipal Zone'}</span>
             </div>
 
             <div className="h-[420px] rounded-2xl overflow-hidden border border-slate-200">
@@ -329,16 +335,18 @@ export const AuthorityDashboard: React.FC = () => {
           <div className="bg-white rounded-3xl border border-slate-200/90 shadow-card p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider block">AUDIT LOG</span>
+                <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wider block">
+                  {language === 'hi' ? 'ऑडिट लॉग' : 'AUDIT LOG'}
+                </span>
                 <h2 className="text-lg font-black font-heading text-ink-950 uppercase">
-                  RECENT ACTIVITY
+                  {language === 'hi' ? 'हाल की गतिविधियां' : 'RECENT ACTIVITY'}
                 </h2>
               </div>
-              <span className="text-xs text-slate-500">Live operational events</span>
+              <span className="text-xs text-slate-500">{language === 'hi' ? 'ताज़ा कार्य गतिविधियां' : 'Live operational events'}</span>
             </div>
 
             <div className="space-y-3 text-xs">
-              {reports.slice(0, 4).map((r, i) => (
+              {reports.slice(0, 4).map((r) => (
                 <div key={r.id} className="p-3 bg-warm-50 rounded-2xl border border-slate-100 flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center font-bold">
@@ -346,13 +354,15 @@ export const AuthorityDashboard: React.FC = () => {
                     </div>
                     <div>
                       <span className="font-bold text-ink-950 block">
-                        Work order {r.id} status updated to {r.status.replace(/_/g, ' ')}
+                        {language === 'hi'
+                          ? `कार्य आदेश ${r.id} की स्थिति: ${r.status} (${getStatusExplanation(r.status)})`
+                          : `Work order ${r.id} status updated to ${r.status.replace(/_/g, ' ')}`}
                       </span>
                       <span className="text-slate-500 text-[11px]">{r.address}</span>
                     </div>
                   </div>
                   <span className="font-mono text-[11px] text-slate-400">
-                    {new Date(r.updatedAt).toLocaleDateString()}
+                    {new Date(r.updatedAt).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN')}
                   </span>
                 </div>
               ))}

@@ -10,25 +10,20 @@ import {
   Navigation,
   Clock,
   Activity,
-  Layers,
-  FileText,
   AlertTriangle,
   Lock,
-  Eye,
-  Check,
   Building2,
-  FileCheck,
-  TrendingUp,
 } from 'lucide-react';
+import { useLanguage } from '../i18n/LanguageContext';
 
 export const LandingPage: React.FC = () => {
+  const { dict, language } = useLanguage();
+
   return (
     <div className="space-y-16 sm:space-y-24 py-4 sm:py-8 overflow-hidden">
-      {/* 1. HERO SECTION — COMPLETE NEW COMPOSITION */}
+      {/* 1. HERO SECTION */}
       <section className="relative px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        {/* Subtle Warm Background with Infrastructure Grid Pattern */}
         <div className="relative rounded-3xl bg-warm-50 border border-slate-200/90 shadow-card overflow-hidden p-6 sm:p-10 lg:p-14 bg-civic-grid">
-          {/* Very soft subtle gradient accents (NOT heavy blue) */}
           <div className="absolute -top-32 -right-32 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -43,20 +38,20 @@ export const LandingPage: React.FC = () => {
                 </span>
                 <span className="text-slate-300">•</span>
                 <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wide">
-                  Public Infrastructure Safety
+                  {dict.common.tagline}
                 </span>
               </div>
 
               {/* Headline */}
               <div className="space-y-2">
                 <h1 className="text-3xl sm:text-5xl lg:text-5xl font-extrabold font-heading tracking-tight leading-[1.15] text-ink-950 uppercase">
-                  REPORT A ROAD PROBLEM.{' '}
+                  {dict.landing.heroTitlePart1}{' '}
                   <span className="block text-teal-700">
-                    HELP MAKE ROADS SAFER.
+                    {dict.landing.heroTitlePart2}
                   </span>
                 </h1>
                 <p className="text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-xl">
-                  Capture a road issue, share its location, and follow its journey from report to verified resolution.
+                  {dict.landing.heroSubtitle}
                 </p>
               </div>
 
@@ -68,7 +63,7 @@ export const LandingPage: React.FC = () => {
                   className="btn-lift flex items-center justify-center space-x-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-extrabold px-7 py-4 rounded-2xl shadow-lg shadow-teal-900/15 text-sm sm:text-base tracking-wide transition-all"
                 >
                   <Camera className="w-5 h-5 text-teal-100" />
-                  <span>REPORT A ROAD ISSUE</span>
+                  <span>{dict.landing.reportCta}</span>
                   <ArrowRight className="w-4 h-4 text-teal-100 ml-1" />
                 </Link>
 
@@ -77,7 +72,7 @@ export const LandingPage: React.FC = () => {
                   className="btn-lift flex items-center justify-center space-x-2 bg-white hover:bg-slate-50 text-ink-900 font-bold px-6 py-4 rounded-2xl border border-slate-200 shadow-subtle text-sm sm:text-base transition-all"
                 >
                   <MapPin className="w-4 h-4 text-teal-600" />
-                  <span>VIEW ROAD MAP</span>
+                  <span>{dict.landing.exploreMapCta}</span>
                 </Link>
               </div>
 
@@ -98,7 +93,7 @@ export const LandingPage: React.FC = () => {
                   </div>
                   <div className="flex items-center space-x-1.5">
                     <Activity className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                    <span>TRANSPARENT TRACKING</span>
+                    <span>{language === 'hi' ? 'पारदर्शी निगरानी' : 'TRANSPARENT TRACKING'}</span>
                   </div>
                 </div>
               </div>
@@ -112,7 +107,7 @@ export const LandingPage: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                     <span className="font-heading font-black text-xs text-ink-900 tracking-wide uppercase">
-                      Live Corridor Telemetry
+                      {language === 'hi' ? 'सक्रिय सड़क डेटा' : 'Live Corridor Telemetry'}
                     </span>
                   </div>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-50 text-teal-800 border border-teal-200">
@@ -125,7 +120,7 @@ export const LandingPage: React.FC = () => {
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="font-mono text-slate-400">CORRIDOR SEGMENT: MEERUT-04</span>
                     <span className="bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded font-bold text-[10px] border border-rose-500/30">
-                      HIGH RISK
+                      {language === 'hi' ? 'अति गंभीर' : 'HIGH RISK'}
                     </span>
                   </div>
 
@@ -161,20 +156,22 @@ export const LandingPage: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-ink-900">Active Report RG-1042</span>
                     <span className="text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full">
-                      IN PROGRESS
+                      IN PROGRESS (मरम्मत जारी)
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-600 leading-tight">
-                    Severe pothole cavity on central carriage lane near Surajkund Road. Assigned to PWD Road Maintenance Cell.
+                    {language === 'hi'
+                      ? 'सूरजकुंड रोड के पास मुख्य सड़क पर गड्ढा। PWD सड़क रखरखाव सेल को आवंटित।'
+                      : 'Severe pothole cavity on central carriage lane near Surajkund Road. Assigned to PWD Road Maintenance Cell.'}
                   </p>
                   <div className="grid grid-cols-2 gap-2 pt-1 text-[10px]">
                     <div className="bg-white p-2 rounded-lg border border-slate-200">
-                      <span className="text-slate-400 block">Risk Metric</span>
+                      <span className="text-slate-400 block">{dict.common.riskScore}</span>
                       <span className="font-bold text-rose-700 text-xs">86 / 100</span>
                     </div>
                     <div className="bg-white p-2 rounded-lg border border-slate-200">
-                      <span className="text-slate-400 block">SLA Target</span>
-                      <span className="font-bold text-ink-900 text-xs">24h Remaining</span>
+                      <span className="text-slate-400 block">{dict.common.sla}</span>
+                      <span className="font-bold text-ink-900 text-xs">{language === 'hi' ? '24 घंटे शेष' : '24h Remaining'}</span>
                     </div>
                   </div>
                 </div>
@@ -184,8 +181,12 @@ export const LandingPage: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                     <div>
-                      <span className="font-bold text-emerald-950 block text-[11px]">Before/After Audit Verified</span>
-                      <span className="text-[10px] text-emerald-700">Recent: Garh Road patch approved</span>
+                      <span className="font-bold text-emerald-950 block text-[11px]">
+                        {language === 'hi' ? 'मरम्मत का AI सत्यापन संपन्न' : 'Before/After Audit Verified'}
+                      </span>
+                      <span className="text-[10px] text-emerald-700">
+                        {language === 'hi' ? 'हालिया: गढ़ रोड पैच मरम्मत स्वीकृत' : 'Recent: Garh Road patch approved'}
+                      </span>
                     </div>
                   </div>
                   <span className="text-[10px] font-mono font-bold text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-300">
@@ -198,180 +199,101 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 2. HOW ROADGUARD WORKS: 6 STEPS (FROM REPORT TO VERIFIED RESOLUTION) */}
+      {/* 2. HOW ROADGUARD WORKS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         <div className="text-center max-w-2xl mx-auto space-y-2">
           <span className="text-xs font-bold uppercase tracking-widest text-teal-700">
-            End-to-End Operational Lifecycle
+            {dict.landing.howItWorksBadge}
           </span>
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black font-heading text-ink-950">
-            FROM REPORT TO VERIFIED RESOLUTION
+            {dict.landing.howItWorksTitle}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
-            Every road defect moves through a structured, auditable lifecycle from initial photo to physical repair.
+            {dict.landing.howItWorksSubtitle}
           </p>
         </div>
 
-        {/* 6 Steps Timeline */}
-        <div className="relative pt-4">
-          {/* Desktop Connecting Line */}
-          <div className="hidden md:block absolute top-[2.25rem] left-[5%] right-[5%] h-0.5 bg-slate-200 z-0" />
-
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 sm:gap-3 relative z-10">
-            {[
-              {
-                num: '01',
-                title: 'REPORT',
-                desc: 'Photo + location',
-                icon: Camera,
-                accent: 'bg-teal-600 text-white',
-              },
-              {
-                num: '02',
-                title: 'UNDERSTAND',
-                desc: 'AI-assisted analysis',
-                icon: Sparkles,
-                accent: 'bg-teal-600 text-white',
-              },
-              {
-                num: '03',
-                title: 'PRIORITIZE',
-                desc: 'Risk assessment',
-                icon: AlertTriangle,
-                accent: 'bg-amber-600 text-white',
-              },
-              {
-                num: '04',
-                title: 'ASSIGN',
-                desc: 'Relevant authority',
-                icon: Building2,
-                accent: 'bg-ink-800 text-white',
-              },
-              {
-                num: '05',
-                title: 'ACT',
-                desc: 'Repair / field action',
-                icon: Clock,
-                accent: 'bg-teal-600 text-white',
-              },
-              {
-                num: '06',
-                title: 'VERIFY',
-                desc: 'Before / after evidence',
-                icon: CheckCircle2,
-                accent: 'bg-emerald-600 text-white',
-              },
-            ].map((step, idx) => {
-              const Icon = step.icon;
-              return (
-                <div
-                  key={step.num}
-                  className="bg-white rounded-2xl p-4 sm:p-4 border border-slate-200/90 shadow-subtle flex flex-col justify-between space-y-3 card-hover"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className={`w-8 h-8 rounded-xl ${step.accent} flex items-center justify-center text-xs font-black shadow-xs`}>
-                      {step.num}
-                    </span>
-                    <Icon className="w-4 h-4 text-slate-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-heading font-black text-sm tracking-tight text-ink-950">
-                      {step.title}
-                    </h3>
-                    <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                      {step.desc}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* 3. CITIZEN-FRIENDLY SECTION: REPORT IN THREE SIMPLE STEPS */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        <div className="text-center max-w-xl mx-auto space-y-2">
-          <span className="text-xs font-bold uppercase tracking-widest text-teal-700">
-            Citizen First Design
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-black font-heading text-ink-950 uppercase">
-            REPORT IN THREE SIMPLE STEPS
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Designed for anyone on the road. No complex forms or bureaucracy.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Step 01 */}
+        {/* Steps Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white p-7 rounded-3xl border border-slate-200/90 shadow-subtle card-hover space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center font-black text-lg">
               01
             </div>
             <div className="space-y-1.5">
               <h3 className="font-heading font-black text-lg text-ink-950">
-                TAKE A PHOTO
+                {dict.landing.step1Title}
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                Capture the issue. A clear picture of the pothole or damaged surface lets computer vision identify the defect.
+                {dict.landing.step1Desc}
               </p>
             </div>
           </div>
 
-          {/* Step 02 */}
           <div className="bg-white p-7 rounded-3xl border border-slate-200/90 shadow-subtle card-hover space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center font-black text-lg">
               02
             </div>
             <div className="space-y-1.5">
               <h3 className="font-heading font-black text-lg text-ink-950">
-                SHARE LOCATION
+                {dict.landing.step2Title}
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                GPS helps locate it. Instant coordinates identify the exact road corridor and municipal maintenance division.
+                {dict.landing.step2Desc}
               </p>
             </div>
           </div>
 
-          {/* Step 03 */}
           <div className="bg-white p-7 rounded-3xl border border-slate-200/90 shadow-subtle card-hover space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center font-black text-lg">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center font-black text-lg">
               03
             </div>
             <div className="space-y-1.5">
               <h3 className="font-heading font-black text-lg text-ink-950">
-                TRACK THE ACTION
+                {dict.landing.step3Title}
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                Follow the resolution. Receive live progress as work orders are assigned and before/after verification is completed.
+                {dict.landing.step3Desc}
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white p-7 rounded-3xl border border-slate-200/90 shadow-subtle card-hover space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center font-black text-lg">
+              04
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="font-heading font-black text-lg text-ink-950">
+                {dict.landing.step4Title}
+              </h3>
+              <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                {dict.landing.step4Desc}
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 4. PLATFORM CAPABILITIES / WHY ROADGUARD */}
+      {/* 3. PLATFORM CAPABILITIES */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="text-center mb-6 space-y-1">
-          <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
-            Core Civic Architecture
+          <span className="text-xs font-bold uppercase tracking-widest text-teal-700">
+            {dict.landing.featuresBadge}
           </span>
           <h2 className="text-2xl sm:text-3xl font-black font-heading text-ink-950 uppercase">
-            WHY ROADGUARD?
+            {dict.landing.featuresTitle}
           </h2>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-subtle space-y-2 card-hover">
             <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
-              <AlertTriangle className="w-4 h-4" />
+              <Sparkles className="w-4 h-4" />
             </div>
             <h3 className="font-heading font-black text-sm uppercase tracking-wide text-ink-900">
-              SMART PRIORITY
+              {dict.landing.feature1Title}
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Dynamically evaluates depth, traffic load, and accident proximity to highlight urgent safety hazards.
+              {dict.landing.feature1Desc}
             </p>
           </div>
 
@@ -380,22 +302,22 @@ export const LandingPage: React.FC = () => {
               <Navigation className="w-4 h-4" />
             </div>
             <h3 className="font-heading font-black text-sm uppercase tracking-wide text-ink-900">
-              SMART ROUTING
+              {dict.landing.feature2Title}
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Instantly maps incidents to PWD, Nagar Nigam, or State Highway divisions without bureaucratic delays.
+              {dict.landing.feature2Desc}
             </p>
           </div>
 
           <div className="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-subtle space-y-2 card-hover">
             <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
-              <CheckCircle2 className="w-4 h-4" />
+              <Clock className="w-4 h-4" />
             </div>
             <h3 className="font-heading font-black text-sm uppercase tracking-wide text-ink-900">
-              VERIFIED REPAIR
+              {dict.landing.feature3Title}
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Requires photographic before/after proof and optical audits before an incident can be closed.
+              {dict.landing.feature3Desc}
             </p>
           </div>
 
@@ -404,28 +326,28 @@ export const LandingPage: React.FC = () => {
               <Activity className="w-4 h-4" />
             </div>
             <h3 className="font-heading font-black text-sm uppercase tracking-wide text-ink-900">
-              ROAD HEALTH
+              {dict.landing.feature4Title}
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Detects chronic defect hotspots and correlates road wear with tender contractor warranty periods.
+              {dict.landing.feature4Desc}
             </p>
           </div>
         </div>
       </section>
 
-      {/* 5. AUTHORITY & SIH JURY PREVIEW CALLOUT */}
+      {/* 4. AUTHORITY & SIH JURY CALLOUT */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-ink-950 text-white rounded-3xl p-7 sm:p-10 border border-ink-800 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-premium">
           <div className="space-y-2 text-center sm:text-left">
             <div className="inline-flex items-center space-x-2 text-[11px] font-bold text-amber-400 uppercase tracking-widest bg-amber-500/10 px-2.5 py-1 rounded-md border border-amber-500/20">
               <Lock className="w-3 h-3" />
-              <span>SIH 2026 Jury & Authority Preview</span>
+              <span>{dict.landing.authoritySectionTitle}</span>
             </div>
             <h3 className="text-xl sm:text-2xl font-black font-heading text-white">
-              Explore the Authority Operations & Verification Command
+              {dict.landing.authoritySectionSubtitle}
             </h3>
             <p className="text-xs text-slate-400 max-w-xl">
-              Inspect inter-agency division dispatch, dynamic SLA countdowns, tender contract accountability, and computer vision photographic verification.
+              {dict.landing.emergencyDesc}
             </p>
           </div>
 
@@ -433,7 +355,7 @@ export const LandingPage: React.FC = () => {
             to="/authority"
             className="btn-lift shrink-0 bg-amber-600 hover:bg-amber-500 text-white text-xs sm:text-sm font-bold px-6 py-3.5 rounded-xl transition flex items-center space-x-2 shadow-md active:scale-95"
           >
-            <span>Open Authority Dashboard</span>
+            <span>{dict.landing.openAuthorityDashboard}</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

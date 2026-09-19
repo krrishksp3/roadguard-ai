@@ -4,6 +4,7 @@ import { RoadReport } from '../../../shared/types';
 import { StatusBadge, SeverityBadge } from '../components/ui/StatusBadge';
 import { RiskScoreMeter } from '../components/ui/RiskScoreMeter';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../i18n/LanguageContext';
 import {
   ShieldAlert,
   AlertTriangle,
@@ -21,6 +22,7 @@ import {
 } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
+  const { dict: t, getDamageTypeLabel } = useLanguage();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
@@ -74,7 +76,7 @@ export const AdminDashboard: React.FC = () => {
         notes: actionNotes.trim(),
         targetDepartmentId: targetDept || undefined,
       });
-      setActionFeedback('Administrative action registered and timeline updated successfully!');
+      setActionFeedback(t.admin.actionSuccess);
       setTimeout(() => {
         setActionModalReport(null);
         loadOverview();
@@ -113,12 +115,12 @@ export const AdminDashboard: React.FC = () => {
         <div>
           <div className="flex items-center space-x-2">
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-gov-700 text-white shadow-sm">
-              District Administration Apex Console
+              {t.admin.apexConsole}
             </span>
-            <span className="text-xs text-slate-500">• Meerut Zone Central Oversight</span>
+            <span className="text-xs text-slate-500">{t.admin.zoneOversight}</span>
           </div>
           <h1 className="text-3xl font-extrabold font-heading text-slate-900 mt-1">
-            Executive Infrastructure Governance
+            {t.admin.consoleTitle}
           </h1>
         </div>
 
@@ -128,7 +130,7 @@ export const AdminDashboard: React.FC = () => {
           className="bg-gov-700 hover:bg-gov-800 text-white text-xs font-semibold px-4 py-2 rounded-xl transition shadow-sm flex items-center space-x-1.5 disabled:opacity-50"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span>Refresh Intelligence</span>
+          <span>{t.admin.refreshIntelligence}</span>
         </button>
       </div>
 
@@ -141,33 +143,33 @@ export const AdminDashboard: React.FC = () => {
       {/* KPI Oversight Row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-          <span className="text-xs font-semibold text-slate-500 block">Total District Reports</span>
+          <span className="text-xs font-semibold text-slate-500 block">{t.admin.totalReports}</span>
           <span className="text-2xl font-black text-slate-900">{data?.stats?.totalReports || 0}</span>
-          <span className="text-[10px] text-slate-400 block mt-1">Logged Across Corridors</span>
+          <span className="text-[10px] text-slate-400 block mt-1">{t.admin.loggedAcrossCorridors}</span>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-red-200 bg-red-50/40 shadow-sm">
-          <span className="text-xs font-semibold text-red-700 block">Critical Risk (Score &gt;= 80)</span>
+          <span className="text-xs font-semibold text-red-700 block">{t.admin.criticalRisk}</span>
           <span className="text-2xl font-black text-red-600">{data?.stats?.criticalCount || 0}</span>
-          <span className="text-[10px] text-red-500 block mt-1">Severe Hazard Density</span>
+          <span className="text-[10px] text-red-500 block mt-1">{t.admin.severeHazardDensity}</span>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-amber-200 bg-amber-50/40 shadow-sm">
-          <span className="text-xs font-semibold text-amber-800 block">SLA Overdue Incidents</span>
+          <span className="text-xs font-semibold text-amber-800 block">{t.admin.slaOverdue}</span>
           <span className="text-2xl font-black text-amber-700">{data?.stats?.overdueCount || 0}</span>
-          <span className="text-[10px] text-amber-600 block mt-1">Mandatory Compliance Breach</span>
+          <span className="text-[10px] text-amber-600 block mt-1">{t.admin.complianceBreach}</span>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-purple-200 bg-purple-50/40 shadow-sm">
-          <span className="text-xs font-semibold text-purple-800 block">Authority Escalations</span>
+          <span className="text-xs font-semibold text-purple-800 block">{t.admin.authorityEscalations}</span>
           <span className="text-2xl font-black text-purple-700">{data?.stats?.escalatedCount || 0}</span>
-          <span className="text-[10px] text-purple-600 block mt-1">Escalated by Engineers</span>
+          <span className="text-[10px] text-purple-600 block mt-1">{t.admin.escalatedByEngineers}</span>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-emerald-200 bg-emerald-50/40 shadow-sm">
-          <span className="text-xs font-semibold text-emerald-800 block">Verified Closures</span>
+          <span className="text-xs font-semibold text-emerald-800 block">{t.admin.verifiedClosures}</span>
           <span className="text-2xl font-black text-emerald-600">{data?.stats?.resolvedCount || 0}</span>
-          <span className="text-[10px] text-emerald-600 block mt-1">Post-Audit Approved</span>
+          <span className="text-[10px] text-emerald-600 block mt-1">{t.admin.postAuditApproved}</span>
         </div>
       </div>
 
@@ -185,7 +187,7 @@ export const AdminDashboard: React.FC = () => {
               }`}
             >
               <AlertTriangle className="w-3.5 h-3.5" />
-              <span>Critical Incidents ({data?.stats?.criticalCount || 0})</span>
+              <span>{t.admin.tabCritical} ({data?.stats?.criticalCount || 0})</span>
             </button>
 
             <button
@@ -197,7 +199,7 @@ export const AdminDashboard: React.FC = () => {
               }`}
             >
               <Clock className="w-3.5 h-3.5" />
-              <span>SLA Overdue ({data?.stats?.overdueCount || 0})</span>
+              <span>{t.admin.tabOverdue} ({data?.stats?.overdueCount || 0})</span>
             </button>
 
             <button
@@ -209,7 +211,7 @@ export const AdminDashboard: React.FC = () => {
               }`}
             >
               <ShieldAlert className="w-3.5 h-3.5" />
-              <span>Escalations ({data?.stats?.escalatedCount || 0})</span>
+              <span>{t.admin.tabEscalations} ({data?.stats?.escalatedCount || 0})</span>
             </button>
 
             <button
@@ -221,7 +223,7 @@ export const AdminDashboard: React.FC = () => {
               }`}
             >
               <FileText className="w-3.5 h-3.5" />
-              <span>Contractor & Hotspot Audit</span>
+              <span>{t.admin.tabContractor}</span>
             </button>
           </div>
 
@@ -232,7 +234,7 @@ export const AdminDashboard: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Filter by ID or road name..."
+              placeholder={t.admin.searchPlaceholder}
               className="pl-9 pr-3 py-1.5 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-gov-700"
             />
           </div>
@@ -243,21 +245,21 @@ export const AdminDashboard: React.FC = () => {
           <table className="w-full text-left text-xs text-slate-700">
             <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
               <tr>
-                <th className="py-3 px-3">Complaint ID</th>
-                <th className="py-3 px-3">Evidence Photo</th>
-                <th className="py-3 px-3">Division</th>
-                <th className="py-3 px-3">Road Corridor</th>
-                <th className="py-3 px-3">Dynamic Risk</th>
-                <th className="py-3 px-3">Status</th>
-                <th className="py-3 px-3">Linked Contractor / Tender</th>
-                <th className="py-3 px-3 text-right">Administrative Action</th>
+                <th className="py-3 px-3">{t.admin.thId}</th>
+                <th className="py-3 px-3">{t.admin.thPhoto}</th>
+                <th className="py-3 px-3">{t.admin.thDivision}</th>
+                <th className="py-3 px-3">{t.admin.thCorridor}</th>
+                <th className="py-3 px-3">{t.admin.thRisk}</th>
+                <th className="py-3 px-3">{t.admin.thStatus}</th>
+                <th className="py-3 px-3">{t.admin.thContractor}</th>
+                <th className="py-3 px-3 text-right">{t.admin.thAction}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
               {currentReports.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-8 text-center text-slate-400">
-                    No records found matching current administrative filter.
+                    {t.admin.noRecords}
                   </td>
                 </tr>
               ) : (
@@ -279,7 +281,7 @@ export const AdminDashboard: React.FC = () => {
                           className="w-10 h-10 rounded-lg object-cover border border-slate-200 shrink-0 bg-slate-100"
                         />
                         <span className="capitalize font-bold text-slate-900 truncate max-w-[120px]">
-                          {report.damageType.replace(/_/g, ' ')}
+                          {getDamageTypeLabel(report.damageType)}
                         </span>
                       </div>
                     </td>
@@ -308,7 +310,7 @@ export const AdminDashboard: React.FC = () => {
                           </span>
                         </div>
                       ) : (
-                        <span className="text-slate-400 italic">Corridor Maintenance</span>
+                        <span className="text-slate-400 italic">{t.admin.corridorMaintenance}</span>
                       )}
                     </td>
                     <td className="py-3 px-3 text-right">
@@ -318,7 +320,7 @@ export const AdminDashboard: React.FC = () => {
                         className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-gov-700 hover:bg-gov-800 text-white font-bold text-xs transition shadow-sm"
                       >
                         <Gavel className="w-3.5 h-3.5" />
-                        <span>Take Action</span>
+                        <span>{t.admin.takeAction}</span>
                       </button>
                     </td>
                   </tr>
@@ -336,7 +338,7 @@ export const AdminDashboard: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center space-x-2">
                 <Gavel className="w-5 h-5 text-gov-700" />
-                <h3 className="font-bold text-slate-900 text-base">District Administrative Directive</h3>
+                <h3 className="font-bold text-slate-900 text-base">{t.admin.modalTitle}</h3>
               </div>
               <button
                 onClick={() => setActionModalReport(null)}
@@ -348,17 +350,17 @@ export const AdminDashboard: React.FC = () => {
 
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
               <div className="flex justify-between">
-                <span className="text-slate-500">Case ID:</span>
+                <span className="text-slate-500">{t.admin.caseId}</span>
                 <span className="font-mono font-bold text-slate-900">{actionModalReport.id}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Location:</span>
+                <span className="text-slate-500">{t.admin.modalLocation}</span>
                 <span className="font-medium text-slate-800 truncate max-w-[280px]">
                   {actionModalReport.address}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Responsible Division:</span>
+                <span className="text-slate-500">{t.admin.modalDivision}</span>
                 <span className="font-bold text-slate-800">
                   {actionModalReport.department?.name || 'UP PWD Meerut'}
                 </span>
@@ -373,23 +375,23 @@ export const AdminDashboard: React.FC = () => {
 
             <form onSubmit={handleExecuteAction} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Directive / Intervention Type</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.admin.directiveType}</label>
                 <select
                   value={actionType}
                   onChange={(e) => setActionType(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-gov-700 bg-white"
                 >
-                  <option value="ESCALATE_AUTHORITY">🚨 Escalate & Issue Immediate 24h Remediation Order</option>
-                  <option value="REQUIRE_INSPECTION">📋 Require Senior Divisional Field Inspection</option>
-                  <option value="REQUIRE_REINSPECTION">❌ Reject Quality & Mandate Immediate Reinspection</option>
-                  <option value="REQUIRE_EVIDENCE">📷 Require Fresh High-Resolution Photographic Proof</option>
-                  <option value="FLAG_CONTRACTOR_SLA">⚠️ Flag Contractor SLA Breach / Liquidated Damages</option>
-                  <option value="DIRECTIVE">📝 General Executive Directive / Instruction</option>
+                  <option value="ESCALATE_AUTHORITY">{t.admin.optEscalate}</option>
+                  <option value="REQUIRE_INSPECTION">{t.admin.optInspection}</option>
+                  <option value="REQUIRE_REINSPECTION">{t.admin.optReinspect}</option>
+                  <option value="REQUIRE_EVIDENCE">{t.admin.optEvidence}</option>
+                  <option value="FLAG_CONTRACTOR_SLA">{t.admin.optSlaBreach}</option>
+                  <option value="DIRECTIVE">{t.admin.optDirective}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Assign to Division</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{t.admin.assignDivision}</label>
                 <select
                   value={targetDept}
                   onChange={(e) => setTargetDept(e.target.value)}
@@ -403,14 +405,14 @@ export const AdminDashboard: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Official Remarks & Instructions (Persisted to Live Timeline)
+                  {t.admin.remarksLabel}
                 </label>
                 <textarea
                   rows={3}
                   required
                   value={actionNotes}
                   onChange={(e) => setActionNotes(e.target.value)}
-                  placeholder="Enter official instruction for Executive Engineer (e.g. Mandatory joint cross-section inspection by JE within 24h, dense BC overlay required)..."
+                  placeholder={t.admin.remarksPlaceholder}
                   className="w-full p-3 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-gov-700"
                 />
               </div>
@@ -421,7 +423,7 @@ export const AdminDashboard: React.FC = () => {
                   onClick={() => setActionModalReport(null)}
                   className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
                 >
-                  Cancel
+                  {t.common.cancel}
                 </button>
                 <button
                   type="submit"
@@ -429,7 +431,7 @@ export const AdminDashboard: React.FC = () => {
                   className="px-5 py-2 rounded-xl bg-gov-700 hover:bg-gov-800 text-white text-xs font-bold shadow-md transition flex items-center space-x-1.5 disabled:opacity-50"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>{actionSubmitting ? 'Dispatching...' : 'Dispatch Directive'}</span>
+                  <span>{actionSubmitting ? t.admin.dispatching : t.admin.dispatchBtn}</span>
                 </button>
               </div>
             </form>

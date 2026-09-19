@@ -19,9 +19,12 @@ import {
 } from 'lucide-react';
 import { OfflineIndicator } from '../pwa/OfflineIndicator';
 import { PwaInstallPrompt } from '../pwa/PwaInstallPrompt';
+import { useLanguage } from '../../i18n/LanguageContext';
+import { LanguageSelector } from './LanguageSelector';
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, isAuthority, isAdmin, logout } = useAuth();
+  const { dict } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
@@ -57,7 +60,7 @@ export const Navbar: React.FC = () => {
                 </span>
               </div>
               <p className="text-[10px] text-slate-400 font-medium tracking-tight hidden sm:block">
-                Public Infrastructure Safety
+                {dict.common.tagline}
               </p>
             </div>
           </Link>
@@ -73,7 +76,7 @@ export const Navbar: React.FC = () => {
               }`}
             >
               <MapPin className={`w-3.5 h-3.5 ${isActive('/map') ? 'text-teal-400' : 'text-slate-400'}`} />
-              <span>Road Map</span>
+              <span>{dict.nav.roadMap}</span>
             </Link>
 
             <Link
@@ -85,7 +88,7 @@ export const Navbar: React.FC = () => {
               }`}
             >
               <Activity className={`w-3.5 h-3.5 ${isActive('/road-health') ? 'text-teal-400' : 'text-slate-400'}`} />
-              <span>Road Health</span>
+              <span>{dict.nav.roadHealth}</span>
             </Link>
 
             <Link
@@ -97,7 +100,7 @@ export const Navbar: React.FC = () => {
               }`}
             >
               <FileText className={`w-3.5 h-3.5 ${isActive('/tenders') ? 'text-teal-400' : 'text-slate-400'}`} />
-              <span>Tender Intelligence</span>
+              <span>{dict.nav.tenderIntelligence}</span>
             </Link>
 
             {isAuthenticated && !isAuthority && !isAdmin && (
@@ -109,7 +112,7 @@ export const Navbar: React.FC = () => {
                     : 'text-slate-300 hover:text-white hover:bg-ink-900'
                 }`}
               >
-                My Reports
+                {dict.nav.myReports}
               </Link>
             )}
 
@@ -124,7 +127,7 @@ export const Navbar: React.FC = () => {
                 }`}
               >
                 <LayoutDashboard className="w-3.5 h-3.5" />
-                <span>Authority Ops</span>
+                <span>{dict.nav.authorityOps}</span>
               </Link>
             )}
 
@@ -139,13 +142,16 @@ export const Navbar: React.FC = () => {
                 }`}
               >
                 <LayoutDashboard className="w-3.5 h-3.5" />
-                <span>Admin Console</span>
+                <span>{dict.nav.adminConsole}</span>
               </Link>
             )}
           </nav>
 
-          {/* RIGHT: Online status, Install App, Primary CTA "REPORT ISSUE", Login/User */}
+          {/* RIGHT: Language Selector, Online status, Install App, Primary CTA "REPORT ISSUE", Login/User */}
           <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Bilingual Language Selector */}
+            <LanguageSelector variant="navbar" />
+
             {/* Status indicators */}
             <div className="hidden sm:flex items-center space-x-1">
               <OfflineIndicator />
@@ -158,7 +164,7 @@ export const Navbar: React.FC = () => {
               className="btn-lift flex items-center space-x-1.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-extrabold tracking-wider uppercase shadow-md shadow-teal-900/30 active:scale-95 transition-all"
             >
               <PlusCircle className="w-4 h-4 text-teal-100" />
-              <span>Report Issue</span>
+              <span>{dict.nav.reportIssue}</span>
             </Link>
 
             {/* Auth Controls */}
@@ -170,7 +176,7 @@ export const Navbar: React.FC = () => {
                 </div>
                 <button
                   onClick={handleLogout}
-                  title="Logout"
+                  title={dict.common.logout}
                   className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-ink-900 transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
@@ -182,13 +188,13 @@ export const Navbar: React.FC = () => {
                   to="/login"
                   className="text-xs font-semibold text-slate-300 hover:text-white px-3 py-2 rounded-xl hover:bg-ink-900 transition-colors"
                 >
-                  Login
+                  {dict.common.login}
                 </Link>
                 <Link
                   to="/register"
                   className="text-xs font-semibold bg-ink-800 hover:bg-ink-700 text-white px-3 py-2 rounded-xl border border-ink-700 transition-colors"
                 >
-                  Sign Up
+                  {dict.common.signup}
                 </Link>
               </div>
             )}
@@ -208,6 +214,9 @@ export const Navbar: React.FC = () => {
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden border-t border-ink-800 bg-ink-950 px-4 pt-4 pb-6 space-y-3 animate-in slide-in-from-top-2">
+          {/* Mobile Language Selector */}
+          <LanguageSelector variant="mobile" />
+
           {/* Quick status on mobile */}
           <div className="flex items-center justify-between pb-2 border-b border-ink-850">
             <OfflineIndicator />
@@ -222,7 +231,7 @@ export const Navbar: React.FC = () => {
                 isActive('/') ? 'bg-ink-800 text-teal-400 font-bold' : 'text-slate-200 hover:bg-ink-900'
               }`}
             >
-              Home
+              {dict.landing.howItWorksTitle || 'Home'}
             </Link>
 
             <Link
@@ -233,7 +242,7 @@ export const Navbar: React.FC = () => {
               }`}
             >
               <MapPin className="w-4 h-4 text-teal-400" />
-              <span>Public Road Map</span>
+              <span>{dict.nav.roadMap}</span>
             </Link>
 
             <Link
@@ -244,7 +253,7 @@ export const Navbar: React.FC = () => {
               }`}
             >
               <Activity className="w-4 h-4 text-teal-400" />
-              <span>Road Health Index</span>
+              <span>{dict.nav.roadHealth}</span>
             </Link>
 
             <Link
@@ -255,7 +264,7 @@ export const Navbar: React.FC = () => {
               }`}
             >
               <FileText className="w-4 h-4 text-slate-400" />
-              <span>Tender Intelligence</span>
+              <span>{dict.nav.tenderIntelligence}</span>
             </Link>
 
             <Link
@@ -265,7 +274,7 @@ export const Navbar: React.FC = () => {
                 isActive('/my-reports') ? 'bg-ink-800 text-teal-400 font-bold' : 'text-slate-200 hover:bg-ink-900'
               }`}
             >
-              My Reports
+              {dict.nav.myReports}
             </Link>
 
             {isAuthority && (
@@ -275,7 +284,7 @@ export const Navbar: React.FC = () => {
                 className="flex items-center space-x-2 px-3.5 py-2.5 rounded-xl text-sm font-bold bg-amber-600 text-white shadow-sm mt-2"
               >
                 <LayoutDashboard className="w-4 h-4" />
-                <span>Authority Operations Dashboard</span>
+                <span>{dict.nav.authorityOps}</span>
               </Link>
             )}
 
@@ -286,7 +295,7 @@ export const Navbar: React.FC = () => {
                 className="flex items-center space-x-2 px-3.5 py-2.5 rounded-xl text-sm font-bold bg-purple-600 text-white shadow-sm mt-2"
               >
                 <LayoutDashboard className="w-4 h-4" />
-                <span>Admin Console</span>
+                <span>{dict.nav.adminConsole}</span>
               </Link>
             )}
           </nav>
@@ -304,7 +313,7 @@ export const Navbar: React.FC = () => {
                   className="flex items-center space-x-1.5 text-xs text-rose-400 hover:text-rose-300 bg-ink-800 px-3.5 py-2 rounded-xl"
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  <span>Logout</span>
+                  <span>{dict.common.logout}</span>
                 </button>
               </div>
             ) : (
@@ -314,14 +323,14 @@ export const Navbar: React.FC = () => {
                   onClick={() => setMobileMenuOpen(false)}
                   className="text-center py-2.5 bg-ink-800 text-white rounded-xl text-xs font-bold border border-ink-700"
                 >
-                  Login
+                  {dict.common.login}
                 </Link>
                 <Link
                   to="/register"
                   onClick={() => setMobileMenuOpen(false)}
                   className="text-center py-2.5 bg-teal-600 text-white rounded-xl text-xs font-bold shadow-sm"
                 >
-                  Sign Up
+                  {dict.common.signup}
                 </Link>
               </div>
             )}
